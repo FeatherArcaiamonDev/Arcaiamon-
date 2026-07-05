@@ -200,13 +200,82 @@
     .form-grid{ grid-template-columns: 1fr 1fr; }
     .add-btn{ grid-column: 1 / -1; width:100%; height:38px; }
   }
+
+  /* Lock screen */
+  #lock-screen{
+    position:fixed;
+    inset:0;
+    background:var(--bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+  }
+  .lock-box{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:32px;
+    width:100%;
+    max-width:320px;
+    text-align:center;
+  }
+  .lock-box h1{
+    font-size:1.5rem;
+    margin-bottom:6px;
+  }
+  .lock-box p{
+    color:var(--text-dim);
+    font-size:0.85rem;
+    margin:0 0 20px;
+  }
+  .lock-box input{
+    margin-bottom:12px;
+    text-align:center;
+  }
+  .lock-btn{
+    width:100%;
+    background:var(--accent);
+    color:#1a1508;
+    border:none;
+    border-radius:6px;
+    padding:10px;
+    font-weight:600;
+    font-size:0.9rem;
+    cursor:pointer;
+  }
+  .lock-error{
+    color:var(--fire);
+    font-size:0.8rem;
+    margin-top:10px;
+    min-height:1em;
+  }
+  .sync-tag{
+    font-size:0.75rem;
+    color:var(--text-dim);
+  }
+  .sync-tag.saving{ color:var(--accent); }
+
+  #app{ display:none; }
 </style>
 </head>
 <body>
 
+<div id="lock-screen">
+  <div class="lock-box">
+    <h1>Movedex</h1>
+    <p>Enter password to access your move list</p>
+    <input id="lock-input" type="password" placeholder="Password" autocomplete="off">
+    <button class="lock-btn" id="lock-btn">Unlock</button>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
+
+<div id="app">
+
 <header>
   <h1>Movedex</h1>
-  <p>Arcaiamon move list &amp; sort tool</p>
+  <p>Arcaiamon move list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
 </header>
 
 <div class="wrap">
@@ -271,8 +340,29 @@
   </div>
 
 </div>
+</div>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPkrJHw0l2j5kaDL6l1ubQwXORI_0Ctjs",
+    authDomain: "arcaiamon.firebaseapp.com",
+    projectId: "arcaiamon",
+    storageBucket: "arcaiamon.firebasestorage.app",
+    messagingSenderId: "1006784138547",
+    appId: "1:1006784138547:web:33bbffb6493b44691f4246"
+  };
+
+  const SITE_PASSWORD = "moves";
+  const DOC_PATH = ["movedex", "shared"]; // single shared document holding all moves
+
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const db = getFirestore(fbApp);
+
   const TYPES = ["Basic","Fire","Water","Volt","Flora","Frost","Mystic","Earth","Spirit","Holy","Iron","Insect","Wind"];
 
   const typeSelect = document.getElementById('f-type');
@@ -286,6 +376,82 @@
   let moves = [];
   let sortKey = null;
   let sortDir = 1;
+  let saveTimeout = null;
+
+  const syncTag = document.getElementById('sync-tag');
+
+  function setSyncStatus(text, saving){
+    syncTag.textContent = text;
+    syncTag.classList.toggle('saving', !!saving);
+  }
+
+  async function loadMoves(){
+    setSyncStatus('Loading…', true);
+    try{
+      const snap = await getDoc(doc(db, ...DOC_PATH));
+      moves = snap.exists() && Array.isArray(snap.data().moves) ? snap.data().moves : [];
+      setSyncStatus('Synced');
+    }catch(err){
+      console.error(err);
+      setSyncStatus('Sync failed — check connection');
+    }
+    render();
+  }
+
+  function saveMoves(){
+    setSyncStatus('Saving…', true);
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      try{
+        await setDoc(doc(db, ...DOC_PATH), { moves });
+        setSyncStatus('Synced');
+      }catch(err){
+        console.error(err);
+        setSyncStatus('Sync failed — check connection');
+      }
+    }, 400);
+  }
+
+  // --- Lock screen ---
+  const lockScreen = document.getElementById('lock-screen');
+  const appEl = document.getElementById('app');
+  const lockInput = document.getElementById('lock-input');
+  const lockBtn = document.getElementById('lock-btn');
+  const lockError = document.getElementById('lock-error');
+
+  function tryUnlock(){
+    if(lockInput.value === SITE_PASSWORD){
+      sessionStorage.setItem('movedex-unlocked', 'yes');
+      unlockApp();
+    } else {
+      lockError.textContent = 'Incorrect password';
+    }
+  }
+
+  async function unlockApp(){
+    lockScreen.style.display = 'none';
+    appEl.style.display = 'block';
+    try{
+      await signInAnonymously(auth);
+    }catch(err){
+      console.error(err);
+      setSyncStatus('Sign-in failed');
+    }
+  }
+
+  lockBtn.addEventListener('click', tryUnlock);
+  lockInput.addEventListener('keydown', e => { if(e.key === 'Enter') tryUnlock(); });
+
+  onAuthStateChanged(auth, user => {
+    if(user){
+      loadMoves();
+    }
+  });
+
+  // In-memory-per-tab check: don't re-prompt within the same session
+  if(sessionStorage.getItem('movedex-unlocked') === 'yes'){
+    unlockApp();
+  }
 
   function typeColorVar(type){
     return `var(--${type.toLowerCase()})`;
@@ -343,6 +509,7 @@
       btn.addEventListener('click', () => {
         moves = moves.filter(m => m.id !== btn.dataset.id);
         render();
+        saveMoves();
       });
     });
   }
@@ -381,6 +548,7 @@
     document.getElementById('f-name').focus();
 
     render();
+    saveMoves();
   });
 
   document.querySelectorAll('thead th').forEach(th => {
@@ -396,8 +564,6 @@
       render();
     });
   });
-
-  render();
 </script>
 </body>
 </html>
