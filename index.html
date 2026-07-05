@@ -614,24 +614,24 @@
           <input id="m-hp" type="number" min="0" placeholder="0">
         </div>
         <div class="field">
-          <label for="m-atk">Attack</label>
-          <input id="m-atk" type="number" min="0" placeholder="0">
+          <label for="m-patk">P-ATK</label>
+          <input id="m-patk" type="number" min="0" placeholder="0">
         </div>
         <div class="field">
-          <label for="m-def">Defense</label>
-          <input id="m-def" type="number" min="0" placeholder="0">
+          <label for="m-matk">M-ATK</label>
+          <input id="m-matk" type="number" min="0" placeholder="0">
         </div>
         <div class="field">
-          <label for="m-spa">Sp. Atk</label>
-          <input id="m-spa" type="number" min="0" placeholder="0">
+          <label for="m-pdef">P-DEF</label>
+          <input id="m-pdef" type="number" min="0" placeholder="0">
         </div>
         <div class="field">
-          <label for="m-spd">Sp. Def</label>
-          <input id="m-spd" type="number" min="0" placeholder="0">
+          <label for="m-mdef">M-DEF</label>
+          <input id="m-mdef" type="number" min="0" placeholder="0">
         </div>
         <div class="field">
-          <label for="m-spe">Speed</label>
-          <input id="m-spe" type="number" min="0" placeholder="0">
+          <label for="m-agi">AGI</label>
+          <input id="m-agi" type="number" min="0" placeholder="0">
         </div>
       </div>
 
@@ -1092,7 +1092,7 @@
   function resetMonForm(){
     document.getElementById('m-name').value = '';
     document.getElementById('m-order').value = '';
-    ['m-hp','m-atk','m-def','m-spa','m-spd','m-spe'].forEach(id => document.getElementById(id).value = '');
+    ['m-hp','m-patk','m-matk','m-pdef','m-mdef','m-agi'].forEach(id => document.getElementById(id).value = '');
     selectedSkillIds = new Set();
     pendingIconData = null;
     iconPreview.innerHTML = '<span class="placeholder">No icon</span>';
@@ -1108,11 +1108,11 @@
     document.getElementById('m-name').value = mon.name || '';
     document.getElementById('m-order').value = mon.order ?? '';
     document.getElementById('m-hp').value = mon.stats?.hp ?? '';
-    document.getElementById('m-atk').value = mon.stats?.atk ?? '';
-    document.getElementById('m-def').value = mon.stats?.def ?? '';
-    document.getElementById('m-spa').value = mon.stats?.spa ?? '';
-    document.getElementById('m-spd').value = mon.stats?.spd ?? '';
-    document.getElementById('m-spe').value = mon.stats?.spe ?? '';
+    document.getElementById('m-patk').value = mon.stats?.patk ?? '';
+    document.getElementById('m-matk').value = mon.stats?.matk ?? '';
+    document.getElementById('m-pdef').value = mon.stats?.pdef ?? '';
+    document.getElementById('m-mdef').value = mon.stats?.mdef ?? '';
+    document.getElementById('m-agi').value = mon.stats?.agi ?? '';
     selectedSkillIds = new Set(mon.skillIds || []);
     pendingIconData = mon.icon || null;
     iconPreview.innerHTML = mon.icon ? `<img src="${mon.icon}" alt="icon">` : '<span class="placeholder">No icon</span>';
@@ -1133,11 +1133,11 @@
     }
     const stats = {
       hp: Number(document.getElementById('m-hp').value) || 0,
-      atk: Number(document.getElementById('m-atk').value) || 0,
-      def: Number(document.getElementById('m-def').value) || 0,
-      spa: Number(document.getElementById('m-spa').value) || 0,
-      spd: Number(document.getElementById('m-spd').value) || 0,
-      spe: Number(document.getElementById('m-spe').value) || 0
+      patk: Number(document.getElementById('m-patk').value) || 0,
+      matk: Number(document.getElementById('m-matk').value) || 0,
+      pdef: Number(document.getElementById('m-pdef').value) || 0,
+      mdef: Number(document.getElementById('m-mdef').value) || 0,
+      agi: Number(document.getElementById('m-agi').value) || 0
     };
     const orderVal = document.getElementById('m-order').value;
     const order = orderVal === '' ? (mons.length ? Math.max(...mons.map(m => m.order || 0)) + 1 : 1) : Number(orderVal);
@@ -1168,14 +1168,14 @@
 
   function hexSVG(stats){
     const maxScale = 200;
-    const cx = 90, cy = 90, R = 70;
+    const cx = 100, cy = 105, R = 60;
     const order = [
       { key:'hp', label:'HP', angle:-90 },
-      { key:'atk', label:'ATK', angle:-30 },
-      { key:'def', label:'DEF', angle:30 },
-      { key:'spe', label:'SPE', angle:90 },
-      { key:'spd', label:'SPD', angle:150 },
-      { key:'spa', label:'SPA', angle:210 }
+      { key:'patk', label:'P-ATK', angle:-30 },
+      { key:'pdef', label:'P-DEF', angle:30 },
+      { key:'agi', label:'AGI', angle:90 },
+      { key:'mdef', label:'M-DEF', angle:150 },
+      { key:'matk', label:'M-ATK', angle:210 }
     ];
     function pt(angleDeg, r){
       const a = angleDeg * Math.PI / 180;
@@ -1190,13 +1190,13 @@
     const valPath = valPts.map(p => p.join(',')).join(' ');
 
     const labels = order.map((o, i) => {
-      const [lx, ly] = pt(o.angle, R + 16);
+      const [lx, ly] = pt(o.angle, R + 24);
       const val = stats[o.key] || 0;
-      return `<text x="${lx}" y="${ly-3}" text-anchor="middle">${o.label}</text><text class="val" x="${lx}" y="${ly+8}" text-anchor="middle">${val}</text>`;
+      return `<text x="${lx}" y="${ly-3}" text-anchor="middle">${o.label}</text><text class="val" x="${lx}" y="${ly+10}" text-anchor="middle">${val}</text>`;
     }).join('');
 
     return `
-      <svg viewBox="0 0 180 180" width="180" height="180" class="hex-labels">
+      <svg viewBox="0 0 200 210" width="200" height="210" class="hex-labels">
         <polygon points="${outerPath}" fill="none" stroke="#2c3040" stroke-width="1"/>
         <polygon points="${valPath}" fill="rgba(201,168,106,0.25)" stroke="#c9a86a" stroke-width="1.5"/>
         ${labels}
