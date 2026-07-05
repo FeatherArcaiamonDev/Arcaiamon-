@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcaiamon — Movedex</title>
+<title>Arcaiamon — Dex</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap');
 
@@ -35,8 +35,8 @@
   }
 
   header{
-    max-width:1080px;
-    margin:0 auto 28px;
+    max-width:1200px;
+    margin:0 auto 20px;
     display:flex;
     align-items:baseline;
     justify-content:space-between;
@@ -58,7 +58,31 @@
     font-size:0.9rem;
   }
 
-  .wrap{max-width:1080px; margin:0 auto;}
+  .tabs{
+    max-width:1200px;
+    margin:0 auto 24px;
+    display:flex;
+    gap:8px;
+  }
+  .tab-btn{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    padding:9px 18px;
+    border-radius:8px;
+    font-family:'Inter', sans-serif;
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+    letter-spacing:0.02em;
+  }
+  .tab-btn.active{
+    color:var(--accent);
+    border-color:var(--accent);
+    background:rgba(201,168,106,0.08);
+  }
+
+  .wrap{max-width:1200px; margin:0 auto;}
 
   .panel{
     background:var(--panel);
@@ -122,6 +146,22 @@
   }
   .add-btn:hover{ transform:scale(1.06); background:#dbb87d; }
   .add-btn:active{ transform:scale(0.96); }
+
+  .wide-btn{
+    background:var(--accent);
+    color:#1a1508;
+    border:none;
+    border-radius:6px;
+    padding:10px 18px;
+    font-size:0.88rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .wide-btn.secondary{
+    background:var(--panel-2);
+    color:var(--text);
+    border:1px solid var(--line);
+  }
 
   .table-wrap{ overflow-x:auto; }
 
@@ -257,14 +297,146 @@
   .sync-tag.saving{ color:var(--accent); }
 
   #app{ display:none; }
+
+  /* Mon form */
+  .mon-form-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+    gap:10px;
+  }
+  .mon-form-grid .field.full{ grid-column: 1 / -1; }
+  @media (max-width:760px){
+    .mon-form-grid{ grid-template-columns: 1fr 1fr; }
+  }
+
+  .icon-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .icon-preview{
+    width:64px;
+    height:64px;
+    border-radius:8px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .icon-preview img{ width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
+  .icon-preview .placeholder{ color:var(--text-dim); font-size:0.7rem; text-align:center; }
+
+  .cropper-wrap{
+    display:none;
+    margin-top:14px;
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:14px;
+    background:var(--panel-2);
+  }
+  .cropper-wrap.active{ display:block; }
+  #sheet-canvas{
+    max-width:100%;
+    cursor:crosshair;
+    border:1px solid var(--line);
+    border-radius:6px;
+    display:block;
+    margin-bottom:10px;
+  }
+
+  .skill-picker{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    max-height:160px;
+    overflow-y:auto;
+    padding:10px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .skill-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 10px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    font-size:0.78rem;
+    cursor:pointer;
+    user-select:none;
+    color:var(--text-dim);
+  }
+  .skill-chip.selected{
+    border-color:var(--accent);
+    color:var(--text);
+    background:rgba(201,168,106,0.1);
+  }
+  .skill-chip input{ display:none; }
+  .skill-chip .dot{
+    width:8px; height:8px; border-radius:50%;
+  }
+
+  .mon-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap:16px;
+  }
+  .mon-card{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+    position:relative;
+  }
+  .mon-card .mon-del{
+    position:absolute;
+    top:10px;
+    right:10px;
+  }
+  .mon-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  .mon-head .icon-preview{ width:48px; height:48px; }
+  .mon-head h3{
+    margin:0;
+    font-family:'Cinzel', serif;
+    font-size:1.05rem;
+    color:var(--text);
+  }
+  .mon-skills{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:10px;
+  }
+  .mon-skills .type-badge{ font-size:0.68rem; padding:2px 8px; }
+
+  .hex-labels text{
+    font-size:9px;
+    fill:var(--text-dim);
+    font-family:'Inter', sans-serif;
+  }
+  .hex-labels .val{
+    fill:var(--text);
+    font-weight:600;
+  }
 </style>
 </head>
 <body>
 
 <div id="lock-screen">
   <div class="lock-box">
-    <h1>Movedex</h1>
-    <p>Enter password to access your move list</p>
+    <h1>Arcaiamon Dex</h1>
+    <p>Enter password to access the dex</p>
     <input id="lock-input" type="password" placeholder="Password" autocomplete="off">
     <button class="lock-btn" id="lock-btn">Unlock</button>
     <div class="lock-error" id="lock-error"></div>
@@ -274,68 +446,143 @@
 <div id="app">
 
 <header>
-  <h1>Movedex</h1>
-  <p>Arcaiamon move list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
+  <h1>Arcaiamon Dex</h1>
+  <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
 </header>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tab-btn-skills">Skills</button>
+  <button class="tab-btn" id="tab-btn-mons">Mons</button>
+</div>
 
 <div class="wrap">
 
-  <div class="panel">
-    <h2>Add a move</h2>
-    <div class="form-grid">
-      <div class="field">
-        <label for="f-name">Name</label>
-        <input id="f-name" type="text" placeholder="e.g. Ember Lash">
+  <!-- SKILLS TAB -->
+  <div id="panel-skills">
+    <div class="panel">
+      <h2>Add a skill</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="f-name">Name</label>
+          <input id="f-name" type="text" placeholder="e.g. Ember Lash">
+        </div>
+        <div class="field">
+          <label for="f-type">Type</label>
+          <select id="f-type"></select>
+        </div>
+        <div class="field">
+          <label for="f-cat">Category</label>
+          <select id="f-cat">
+            <option value="Physical">Physical</option>
+            <option value="Magic">Magic</option>
+            <option value="Status">Status</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-power">Power</label>
+          <input id="f-power" type="number" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="f-acc">Accuracy</label>
+          <input id="f-acc" type="number" min="0" max="100" placeholder="100">
+        </div>
+        <div class="field">
+          <label for="f-desc">Description / effect</label>
+          <input id="f-desc" type="text" placeholder="What it does">
+        </div>
+        <button class="add-btn" id="add-btn" title="Add skill">+</button>
       </div>
-      <div class="field">
-        <label for="f-type">Type</label>
-        <select id="f-type"></select>
+    </div>
+
+    <div class="panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Skill list</span>
+        <span class="count-tag" id="count-tag">0 skills</span>
+      </h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-key="name">Name<span class="arrow"></span></th>
+              <th data-key="type">Type<span class="arrow"></span></th>
+              <th data-key="category">Category<span class="arrow"></span></th>
+              <th data-key="power">Power<span class="arrow"></span></th>
+              <th data-key="accuracy">Accuracy<span class="arrow"></span></th>
+              <th data-key="none" style="cursor:default;">Description</th>
+              <th data-key="none" style="cursor:default;"></th>
+            </tr>
+          </thead>
+          <tbody id="skill-body"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state">No skills yet. Add your first one above.</div>
       </div>
-      <div class="field">
-        <label for="f-cat">Category</label>
-        <select id="f-cat">
-          <option value="Physical">Physical</option>
-          <option value="Magic">Magic</option>
-          <option value="Status">Status</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="f-power">Power</label>
-        <input id="f-power" type="number" min="0" placeholder="0">
-      </div>
-      <div class="field">
-        <label for="f-acc">Accuracy</label>
-        <input id="f-acc" type="number" min="0" max="100" placeholder="100">
-      </div>
-      <div class="field">
-        <label for="f-desc">Description / effect</label>
-        <input id="f-desc" type="text" placeholder="What it does">
-      </div>
-      <button class="add-btn" id="add-btn" title="Add move">+</button>
     </div>
   </div>
 
-  <div class="panel">
-    <h2 style="display:flex; justify-content:space-between; align-items:center;">
-      <span>Move list</span>
-      <span class="count-tag" id="count-tag">0 moves</span>
-    </h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th data-key="name">Name<span class="arrow"></span></th>
-            <th data-key="type">Type<span class="arrow"></span></th>
-            <th data-key="category">Category<span class="arrow"></span></th>
-            <th data-key="power">Power<span class="arrow"></span></th>
-            <th data-key="accuracy">Accuracy<span class="arrow"></span></th>
-            <th data-key="none" style="cursor:default;">Description</th>
-            <th data-key="none" style="cursor:default;"></th>
-          </tr>
-        </thead>
-        <tbody id="move-body"></tbody>
-      </table>
-      <div class="empty-state" id="empty-state">No moves yet. Add your first one above.</div>
+  <!-- MONS TAB -->
+  <div id="panel-mons" style="display:none;">
+    <div class="panel">
+      <h2>Add a Mon</h2>
+
+      <div class="icon-row">
+        <div class="icon-preview" id="icon-preview"><span class="placeholder">No icon</span></div>
+        <div>
+          <input type="file" id="sheet-upload" accept="image/*">
+          <div style="font-size:0.75rem; color:var(--text-dim); margin-top:6px;">Upload your icon sheet once, then drag to select this Mon's icon below.</div>
+        </div>
+      </div>
+
+      <div class="cropper-wrap" id="cropper-wrap">
+        <canvas id="sheet-canvas"></canvas>
+        <button class="wide-btn secondary" id="use-crop-btn">Use selection as icon</button>
+      </div>
+
+      <div class="mon-form-grid" style="margin-top:18px;">
+        <div class="field full">
+          <label for="m-name">Name</label>
+          <input id="m-name" type="text" placeholder="e.g. Pudloach">
+        </div>
+        <div class="field">
+          <label for="m-hp">HP</label>
+          <input id="m-hp" type="number" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="m-atk">Attack</label>
+          <input id="m-atk" type="number" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="m-def">Defense</label>
+          <input id="m-def" type="number" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="m-spa">Sp. Atk</label>
+          <input id="m-spa" type="number" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="m-spd">Sp. Def</label>
+          <input id="m-spd" type="number" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="m-spe">Speed</label>
+          <input id="m-spe" type="number" min="0" placeholder="0">
+        </div>
+      </div>
+
+      <div class="field full" style="margin-top:16px;">
+        <label>Movepool (select from skill list)</label>
+        <div class="skill-picker" id="skill-picker"></div>
+      </div>
+
+      <button class="wide-btn" id="add-mon-btn" style="margin-top:16px;">Add Mon</button>
+    </div>
+
+    <div class="panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Mon list</span>
+        <span class="count-tag" id="mon-count-tag">0 mons</span>
+      </h2>
+      <div class="mon-grid" id="mon-grid"></div>
+      <div class="empty-state" id="mon-empty-state">No Mons yet. Add your first one above.</div>
     </div>
   </div>
 
@@ -345,7 +592,10 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getFirestore, doc, getDoc, setDoc,
+    collection, addDoc, deleteDoc, onSnapshot, query
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCPkrJHw0l2j5kaDL6l1ubQwXORI_0Ctjs",
@@ -357,7 +607,8 @@
   };
 
   const SITE_PASSWORD = "moves";
-  const DOC_PATH = ["movedex", "shared"]; // single shared document holding all moves
+  const SKILLS_DOC = ["movedex", "shared"];
+  const MONS_COLLECTION = "mons";
 
   const fbApp = initializeApp(firebaseConfig);
   const auth = getAuth(fbApp);
@@ -373,10 +624,14 @@
     typeSelect.appendChild(opt);
   });
 
-  let moves = [];
+  let skills = [];
   let sortKey = null;
   let sortDir = 1;
   let saveTimeout = null;
+
+  let mons = [];
+  let selectedSkillIds = new Set();
+  let pendingIconData = null;
 
   const syncTag = document.getElementById('sync-tag');
 
@@ -385,34 +640,40 @@
     syncTag.classList.toggle('saving', !!saving);
   }
 
-  async function loadMoves(){
-    setSyncStatus('Loading…', true);
-    try{
-      const snap = await getDoc(doc(db, ...DOC_PATH));
-      moves = snap.exists() && Array.isArray(snap.data().moves) ? snap.data().moves : [];
-      setSyncStatus('Synced');
-    }catch(err){
-      console.error(err);
-      setSyncStatus('Sync failed — check connection');
-    }
-    render();
+  function typeColorVar(type){
+    return `var(--${type.toLowerCase()})`;
   }
 
-  function saveMoves(){
-    setSyncStatus('Saving…', true);
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(async () => {
-      try{
-        await setDoc(doc(db, ...DOC_PATH), { moves });
-        setSyncStatus('Synced');
-      }catch(err){
-        console.error(err);
-        setSyncStatus('Sync failed — check connection');
-      }
-    }, 400);
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
   }
 
-  // --- Lock screen ---
+  /* ---------------- TABS ---------------- */
+  const tabBtnSkills = document.getElementById('tab-btn-skills');
+  const tabBtnMons = document.getElementById('tab-btn-mons');
+  const panelSkills = document.getElementById('panel-skills');
+  const panelMons = document.getElementById('panel-mons');
+  const headerSub = document.getElementById('header-sub');
+
+  tabBtnSkills.addEventListener('click', () => {
+    tabBtnSkills.classList.add('active');
+    tabBtnMons.classList.remove('active');
+    panelSkills.style.display = 'block';
+    panelMons.style.display = 'none';
+    headerSub.childNodes[0].textContent = 'Skill list & sort tool ';
+  });
+  tabBtnMons.addEventListener('click', () => {
+    tabBtnMons.classList.add('active');
+    tabBtnSkills.classList.remove('active');
+    panelMons.style.display = 'block';
+    panelSkills.style.display = 'none';
+    headerSub.childNodes[0].textContent = 'Mon roster & stats ';
+    renderSkillPicker();
+  });
+
+  /* ---------------- LOCK SCREEN ---------------- */
   const lockScreen = document.getElementById('lock-screen');
   const appEl = document.getElementById('app');
   const lockInput = document.getElementById('lock-input');
@@ -444,27 +705,53 @@
 
   onAuthStateChanged(auth, user => {
     if(user){
-      loadMoves();
+      loadSkills();
+      listenMons();
     }
   });
 
-  // In-memory-per-tab check: don't re-prompt within the same session
   if(sessionStorage.getItem('movedex-unlocked') === 'yes'){
     unlockApp();
   }
 
-  function typeColorVar(type){
-    return `var(--${type.toLowerCase()})`;
+  /* ---------------- SKILLS ---------------- */
+  async function loadSkills(){
+    setSyncStatus('Loading…', true);
+    try{
+      const snap = await getDoc(doc(db, ...SKILLS_DOC));
+      skills = snap.exists() && Array.isArray(snap.data().skills) ? snap.data().skills : [];
+      setSyncStatus('Synced');
+    }catch(err){
+      console.error(err);
+      setSyncStatus('Sync failed — check connection');
+    }
+    renderSkills();
+    renderSkillPicker();
+    renderMons();
   }
 
-  function render(){
-    const tbody = document.getElementById('move-body');
+  function saveSkills(){
+    setSyncStatus('Saving…', true);
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      try{
+        await setDoc(doc(db, ...SKILLS_DOC), { skills });
+        setSyncStatus('Synced');
+      }catch(err){
+        console.error(err);
+        setSyncStatus('Sync failed — check connection');
+      }
+    }, 400);
+  }
+
+  function renderSkills(){
+    const tbody = document.getElementById('skill-body');
     const emptyState = document.getElementById('empty-state');
     const countTag = document.getElementById('count-tag');
 
-    countTag.textContent = `${moves.length} move${moves.length === 1 ? '' : 's'}`;
+    countTag.textContent = `${skills.length} skill${skills.length === 1 ? '' : 's'}`;
 
-    let list = [...moves];
+    let list = [...skills];
     if(sortKey){
       list.sort((a,b) => {
         let av = a[sortKey], bv = b[sortKey];
@@ -495,7 +782,7 @@
       });
     }
 
-    document.querySelectorAll('thead th').forEach(th => {
+    document.querySelectorAll('#panel-skills thead th').forEach(th => {
       th.classList.remove('sorted');
       const arrow = th.querySelector('.arrow');
       if(arrow) arrow.textContent = '';
@@ -507,17 +794,12 @@
 
     tbody.querySelectorAll('.del-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        moves = moves.filter(m => m.id !== btn.dataset.id);
-        render();
-        saveMoves();
+        skills = skills.filter(m => m.id !== btn.dataset.id);
+        renderSkills();
+        renderSkillPicker();
+        saveSkills();
       });
     });
-  }
-
-  function escapeHtml(str){
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 
   document.getElementById('add-btn').addEventListener('click', () => {
@@ -533,7 +815,7 @@
       return;
     }
 
-    moves.push({
+    skills.push({
       id: Date.now().toString() + Math.random().toString(36).slice(2,6),
       name, type, category,
       power: power === '' ? '' : Number(power),
@@ -547,11 +829,12 @@
     document.getElementById('f-desc').value = '';
     document.getElementById('f-name').focus();
 
-    render();
-    saveMoves();
+    renderSkills();
+    renderSkillPicker();
+    saveSkills();
   });
 
-  document.querySelectorAll('thead th').forEach(th => {
+  document.querySelectorAll('#panel-skills thead th').forEach(th => {
     th.addEventListener('click', () => {
       const key = th.dataset.key;
       if(key === 'none') return;
@@ -561,9 +844,271 @@
         sortKey = key;
         sortDir = 1;
       }
-      render();
+      renderSkills();
     });
   });
+
+  /* ---------------- SKILL PICKER (for mon movepool) ---------------- */
+  function renderSkillPicker(){
+    const picker = document.getElementById('skill-picker');
+    if(skills.length === 0){
+      picker.innerHTML = '<span style="color:var(--text-dim); font-size:0.8rem;">Add skills first on the Skills tab.</span>';
+      return;
+    }
+    picker.innerHTML = '';
+    skills.forEach(s => {
+      const chip = document.createElement('label');
+      chip.className = 'skill-chip' + (selectedSkillIds.has(s.id) ? ' selected' : '');
+      chip.innerHTML = `
+        <input type="checkbox" ${selectedSkillIds.has(s.id) ? 'checked' : ''}>
+        <span class="dot" style="background:${typeColorVar(s.type)}"></span>
+        ${escapeHtml(s.name)}
+      `;
+      chip.querySelector('input').addEventListener('change', e => {
+        if(e.target.checked) selectedSkillIds.add(s.id);
+        else selectedSkillIds.delete(s.id);
+        chip.classList.toggle('selected', e.target.checked);
+      });
+      picker.appendChild(chip);
+    });
+  }
+
+  /* ---------------- ICON CROPPER ---------------- */
+  const sheetUpload = document.getElementById('sheet-upload');
+  const cropperWrap = document.getElementById('cropper-wrap');
+  const sheetCanvas = document.getElementById('sheet-canvas');
+  const ctx = sheetCanvas.getContext('2d');
+  const iconPreview = document.getElementById('icon-preview');
+  const useCropBtn = document.getElementById('use-crop-btn');
+
+  let sheetImg = null;
+  let sheetScale = 1;
+  let selRect = null;
+  let dragging = false;
+  let dragStart = null;
+
+  sheetUpload.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const img = new Image();
+      img.onload = () => {
+        sheetImg = img;
+        const maxW = 900;
+        sheetScale = img.width > maxW ? maxW / img.width : 1;
+        sheetCanvas.width = img.width * sheetScale;
+        sheetCanvas.height = img.height * sheetScale;
+        drawSheet();
+        cropperWrap.classList.add('active');
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function drawSheet(){
+    ctx.clearRect(0,0,sheetCanvas.width, sheetCanvas.height);
+    ctx.drawImage(sheetImg, 0, 0, sheetCanvas.width, sheetCanvas.height);
+    if(selRect){
+      ctx.strokeStyle = '#c9a86a';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(selRect.x, selRect.y, selRect.w, selRect.h);
+      ctx.fillStyle = 'rgba(201,168,106,0.15)';
+      ctx.fillRect(selRect.x, selRect.y, selRect.w, selRect.h);
+    }
+  }
+
+  function getPos(e){
+    const rect = sheetCanvas.getBoundingClientRect();
+    const scaleX = sheetCanvas.width / rect.width;
+    const scaleY = sheetCanvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  sheetCanvas.addEventListener('mousedown', e => {
+    dragging = true;
+    dragStart = getPos(e);
+    selRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+  });
+  sheetCanvas.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const p = getPos(e);
+    selRect = {
+      x: Math.min(dragStart.x, p.x),
+      y: Math.min(dragStart.y, p.y),
+      w: Math.abs(p.x - dragStart.x),
+      h: Math.abs(p.y - dragStart.y)
+    };
+    drawSheet();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  useCropBtn.addEventListener('click', () => {
+    if(!sheetImg || !selRect || selRect.w < 2 || selRect.h < 2){
+      alert('Drag a selection box over the icon first.');
+      return;
+    }
+    const srcX = selRect.x / sheetScale;
+    const srcY = selRect.y / sheetScale;
+    const srcW = selRect.w / sheetScale;
+    const srcH = selRect.h / sheetScale;
+
+    const out = document.createElement('canvas');
+    const maxSide = 96;
+    const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+    out.width = Math.max(1, Math.round(srcW * scale));
+    out.height = Math.max(1, Math.round(srcH * scale));
+    const octx = out.getContext('2d');
+    octx.imageSmoothingEnabled = false;
+    octx.drawImage(sheetImg, srcX, srcY, srcW, srcH, 0, 0, out.width, out.height);
+
+    pendingIconData = out.toDataURL('image/png');
+    iconPreview.innerHTML = `<img src="${pendingIconData}" alt="icon">`;
+  });
+
+  /* ---------------- MONS ---------------- */
+  function listenMons(){
+    const q = query(collection(db, MONS_COLLECTION));
+    onSnapshot(q, snap => {
+      mons = [];
+      snap.forEach(d => mons.push({ id: d.id, ...d.data() }));
+      renderMons();
+    }, err => {
+      console.error(err);
+      setSyncStatus('Mon sync failed');
+    });
+  }
+
+  document.getElementById('add-mon-btn').addEventListener('click', async () => {
+    const name = document.getElementById('m-name').value.trim();
+    if(!name){
+      document.getElementById('m-name').focus();
+      return;
+    }
+    const stats = {
+      hp: Number(document.getElementById('m-hp').value) || 0,
+      atk: Number(document.getElementById('m-atk').value) || 0,
+      def: Number(document.getElementById('m-def').value) || 0,
+      spa: Number(document.getElementById('m-spa').value) || 0,
+      spd: Number(document.getElementById('m-spd').value) || 0,
+      spe: Number(document.getElementById('m-spe').value) || 0
+    };
+
+    const newMon = {
+      name,
+      icon: pendingIconData || null,
+      stats,
+      skillIds: Array.from(selectedSkillIds)
+    };
+
+    try{
+      setSyncStatus('Saving…', true);
+      await addDoc(collection(db, MONS_COLLECTION), newMon);
+      setSyncStatus('Synced');
+    }catch(err){
+      console.error(err);
+      setSyncStatus('Sync failed — check connection');
+    }
+
+    document.getElementById('m-name').value = '';
+    ['m-hp','m-atk','m-def','m-spa','m-spd','m-spe'].forEach(id => document.getElementById(id).value = '');
+    selectedSkillIds = new Set();
+    pendingIconData = null;
+    iconPreview.innerHTML = '<span class="placeholder">No icon</span>';
+    renderSkillPicker();
+  });
+
+  function hexSVG(stats){
+    const maxScale = 200;
+    const cx = 90, cy = 90, R = 70;
+    const order = [
+      { key:'hp', label:'HP', angle:-90 },
+      { key:'atk', label:'ATK', angle:-30 },
+      { key:'def', label:'DEF', angle:30 },
+      { key:'spe', label:'SPE', angle:90 },
+      { key:'spd', label:'SPD', angle:150 },
+      { key:'spa', label:'SPA', angle:210 }
+    ];
+    function pt(angleDeg, r){
+      const a = angleDeg * Math.PI / 180;
+      return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    }
+    const outerPts = order.map(o => pt(o.angle, R));
+    const valPts = order.map(o => {
+      const ratio = Math.min(1, (stats[o.key] || 0) / maxScale);
+      return pt(o.angle, R * ratio);
+    });
+    const outerPath = outerPts.map(p => p.join(',')).join(' ');
+    const valPath = valPts.map(p => p.join(',')).join(' ');
+
+    const labels = order.map((o, i) => {
+      const [lx, ly] = pt(o.angle, R + 16);
+      const val = stats[o.key] || 0;
+      return `<text x="${lx}" y="${ly-3}" text-anchor="middle">${o.label}</text><text class="val" x="${lx}" y="${ly+8}" text-anchor="middle">${val}</text>`;
+    }).join('');
+
+    return `
+      <svg viewBox="0 0 180 180" width="180" height="180" class="hex-labels">
+        <polygon points="${outerPath}" fill="none" stroke="#2c3040" stroke-width="1"/>
+        <polygon points="${valPath}" fill="rgba(201,168,106,0.25)" stroke="#c9a86a" stroke-width="1.5"/>
+        ${labels}
+      </svg>
+    `;
+  }
+
+  function renderMons(){
+    const grid = document.getElementById('mon-grid');
+    const emptyState = document.getElementById('mon-empty-state');
+    const countTag = document.getElementById('mon-count-tag');
+
+    countTag.textContent = `${mons.length} mon${mons.length === 1 ? '' : 's'}`;
+
+    grid.innerHTML = '';
+    if(mons.length === 0){
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+
+    mons.forEach(mon => {
+      const card = document.createElement('div');
+      card.className = 'mon-card';
+      const iconHtml = mon.icon
+        ? `<img src="${mon.icon}" alt="${escapeHtml(mon.name)}">`
+        : `<span class="placeholder">?</span>`;
+
+      const skillTags = (mon.skillIds || []).map(id => {
+        const s = skills.find(sk => sk.id === id);
+        if(!s) return '';
+        return `<span class="type-badge" style="background:${typeColorVar(s.type)}">${escapeHtml(s.name)}</span>`;
+      }).join('');
+
+      card.innerHTML = `
+        <button class="del-btn mon-del" data-id="${mon.id}" title="Remove">✕</button>
+        <div class="mon-head">
+          <div class="icon-preview">${iconHtml}</div>
+          <h3>${escapeHtml(mon.name)}</h3>
+        </div>
+        ${hexSVG(mon.stats || {})}
+        <div class="mon-skills">${skillTags || '<span style="color:var(--text-dim); font-size:0.78rem;">No skills assigned</span>'}</div>
+      `;
+      grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('.mon-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try{
+          await deleteDoc(doc(db, MONS_COLLECTION, btn.dataset.id));
+        }catch(err){
+          console.error(err);
+          alert('Could not delete — check connection.');
+        }
+      });
+    });
+  }
 </script>
 </body>
 </html>
