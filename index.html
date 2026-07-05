@@ -509,7 +509,7 @@
   <!-- SKILLS TAB -->
   <div id="panel-skills">
     <div class="panel">
-      <h2>Add a skill</h2>
+      <h2 id="skill-form-title">Add a skill</h2>
       <div class="form-grid">
         <div class="field">
           <label for="f-name">Name</label>
@@ -541,6 +541,7 @@
         </div>
         <button class="add-btn" id="add-btn" title="Add skill">+</button>
       </div>
+      <button class="wide-btn secondary" id="cancel-skill-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
     </div>
 
     <div class="panel">
@@ -610,6 +611,17 @@
           <input id="m-order" type="number" min="1" placeholder="1">
         </div>
         <div class="field">
+          <label for="m-budget">Stat total budget</label>
+          <input id="m-budget" type="number" min="0" placeholder="e.g. 540">
+        </div>
+        <div class="field">
+          <label>Points invested</label>
+          <div id="stat-total-display" style="padding:9px 10px; background:var(--panel); border:1px solid var(--line); border-radius:6px; font-size:0.9rem; font-variant-numeric:tabular-nums;">0 / 0</div>
+        </div>
+      </div>
+
+      <div class="mon-form-grid" style="margin-top:10px;">
+        <div class="field">
           <label for="m-hp">HP</label>
           <input id="m-hp" type="number" min="0" placeholder="0">
         </div>
@@ -633,6 +645,11 @@
           <label for="m-agi">AGI</label>
           <input id="m-agi" type="number" min="0" placeholder="0">
         </div>
+      </div>
+
+      <div class="field full" style="margin-top:16px;">
+        <label for="m-notes">Notes</label>
+        <textarea id="m-notes" rows="3" placeholder="Anything about this Mon — lore, role, quirks…" style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:9px 10px; border-radius:6px; font-family:'Inter', sans-serif; font-size:0.88rem; resize:vertical;"></textarea>
       </div>
 
       <div class="field full" style="margin-top:16px;">
@@ -698,6 +715,7 @@
   let sortKey = null;
   let sortDir = 1;
   let saveTimeout = null;
+  let editingSkillId = null;
 
   let mons = [];
   let selectedSkillIds = new Set();
@@ -847,7 +865,10 @@
           <td class="num-cell">${m.power === '' ? '—' : m.power}</td>
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
           <td class="desc-cell">${escapeHtml(m.desc) || '—'}</td>
-          <td><button class="del-btn" data-id="${m.id}" title="Remove">✕</button></td>
+          <td style="white-space:nowrap;">
+            <button class="del-btn edit-skill-btn" data-id="${m.id}" title="Edit">✎</button>
+            <button class="del-btn" data-id="${m.id}" title="Remove">✕</button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -863,17 +884,60 @@
       }
     });
 
-    tbody.querySelectorAll('.del-btn').forEach(btn => {
+    tbody.querySelectorAll('.del-btn:not(.edit-skill-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
         skills = skills.filter(m => m.id !== btn.dataset.id);
+        if(editingSkillId === btn.dataset.id) resetSkillForm();
         renderSkills();
         renderSkillPicker();
         saveSkills();
       });
     });
+
+    tbody.querySelectorAll('.edit-skill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const skill = skills.find(s => s.id === btn.dataset.id);
+        if(skill) loadSkillIntoForm(skill);
+      });
+    });
   }
 
-  document.getElementById('add-btn').addEventListener('click', () => {
+  const addSkillBtn = document.getElementById('add-btn');
+  const cancelSkillEditBtn = document.getElementById('cancel-skill-edit-btn');
+  const skillFormTitle = document.getElementById('skill-form-title');
+
+  function resetSkillForm(){
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-power').value = '';
+    document.getElementById('f-acc').value = '';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-type').selectedIndex = 0;
+    document.getElementById('f-cat').selectedIndex = 0;
+    editingSkillId = null;
+    addSkillBtn.textContent = '+';
+    addSkillBtn.title = 'Add skill';
+    skillFormTitle.textContent = 'Add a skill';
+    cancelSkillEditBtn.style.display = 'none';
+  }
+
+  function loadSkillIntoForm(skill){
+    editingSkillId = skill.id;
+    document.getElementById('f-name').value = skill.name || '';
+    document.getElementById('f-type').value = skill.type || TYPES[0];
+    document.getElementById('f-cat').value = skill.category || 'Physical';
+    document.getElementById('f-power').value = skill.power ?? '';
+    document.getElementById('f-acc').value = skill.accuracy ?? '';
+    document.getElementById('f-desc').value = skill.desc || '';
+    addSkillBtn.textContent = '✓';
+    addSkillBtn.title = 'Save changes';
+    skillFormTitle.textContent = `Editing ${skill.name}`;
+    cancelSkillEditBtn.style.display = 'inline-block';
+    document.getElementById('f-name').focus();
+  }
+
+  cancelSkillEditBtn.addEventListener('click', resetSkillForm);
+
+  addSkillBtn.addEventListener('click', () => {
     const name = document.getElementById('f-name').value.trim();
     const type = document.getElementById('f-type').value;
     const category = document.getElementById('f-cat').value;
@@ -886,20 +950,28 @@
       return;
     }
 
-    skills.push({
-      id: Date.now().toString() + Math.random().toString(36).slice(2,6),
-      name, type, category,
-      power: power === '' ? '' : Number(power),
-      accuracy: accuracy === '' ? '' : Number(accuracy),
-      desc
-    });
+    if(editingSkillId){
+      const idx = skills.findIndex(s => s.id === editingSkillId);
+      if(idx !== -1){
+        skills[idx] = {
+          ...skills[idx],
+          name, type, category,
+          power: power === '' ? '' : Number(power),
+          accuracy: accuracy === '' ? '' : Number(accuracy),
+          desc
+        };
+      }
+    } else {
+      skills.push({
+        id: Date.now().toString() + Math.random().toString(36).slice(2,6),
+        name, type, category,
+        power: power === '' ? '' : Number(power),
+        accuracy: accuracy === '' ? '' : Number(accuracy),
+        desc
+      });
+    }
 
-    document.getElementById('f-name').value = '';
-    document.getElementById('f-power').value = '';
-    document.getElementById('f-acc').value = '';
-    document.getElementById('f-desc').value = '';
-    document.getElementById('f-name').focus();
-
+    resetSkillForm();
     renderSkills();
     renderSkillPicker();
     saveSkills();
@@ -1088,10 +1160,23 @@
   const addMonBtn = document.getElementById('add-mon-btn');
   const cancelEditBtn = document.getElementById('cancel-edit-btn');
   const monFormTitle = document.getElementById('mon-form-title');
+  const statTotalDisplay = document.getElementById('stat-total-display');
+  const statFieldIds = ['m-hp','m-patk','m-matk','m-pdef','m-mdef','m-agi'];
+
+  function updateStatTotalDisplay(){
+    const total = statFieldIds.reduce((sum, id) => sum + (Number(document.getElementById(id).value) || 0), 0);
+    const budget = Number(document.getElementById('m-budget').value) || 0;
+    statTotalDisplay.textContent = `${total} / ${budget}`;
+    statTotalDisplay.style.color = (budget > 0 && total > budget) ? 'var(--fire)' : 'var(--text)';
+  }
+  statFieldIds.forEach(id => document.getElementById(id).addEventListener('input', updateStatTotalDisplay));
+  document.getElementById('m-budget').addEventListener('input', updateStatTotalDisplay);
 
   function resetMonForm(){
     document.getElementById('m-name').value = '';
     document.getElementById('m-order').value = '';
+    document.getElementById('m-budget').value = '';
+    document.getElementById('m-notes').value = '';
     ['m-hp','m-patk','m-matk','m-pdef','m-mdef','m-agi'].forEach(id => document.getElementById(id).value = '');
     selectedSkillIds = new Set();
     pendingIconData = null;
@@ -1101,12 +1186,15 @@
     monFormTitle.textContent = 'Add a Mon';
     cancelEditBtn.style.display = 'none';
     renderSkillPicker();
+    updateStatTotalDisplay();
   }
 
   function loadMonIntoForm(mon){
     editingMonId = mon.id;
     document.getElementById('m-name').value = mon.name || '';
     document.getElementById('m-order').value = mon.order ?? '';
+    document.getElementById('m-budget').value = mon.statBudget ?? '';
+    document.getElementById('m-notes').value = mon.notes ?? '';
     document.getElementById('m-hp').value = mon.stats?.hp ?? '';
     document.getElementById('m-patk').value = mon.stats?.patk ?? '';
     document.getElementById('m-matk').value = mon.stats?.matk ?? '';
@@ -1120,6 +1208,7 @@
     monFormTitle.textContent = `Editing ${mon.name}`;
     cancelEditBtn.style.display = 'inline-block';
     renderSkillPicker();
+    updateStatTotalDisplay();
     document.getElementById('panel-mons').scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
@@ -1141,13 +1230,17 @@
     };
     const orderVal = document.getElementById('m-order').value;
     const order = orderVal === '' ? (mons.length ? Math.max(...mons.map(m => m.order || 0)) + 1 : 1) : Number(orderVal);
+    const statBudget = Number(document.getElementById('m-budget').value) || 0;
+    const notes = document.getElementById('m-notes').value.trim();
 
     const monData = {
       name,
       icon: pendingIconData || null,
       stats,
       skillIds: Array.from(selectedSkillIds),
-      order
+      order,
+      statBudget,
+      notes
     };
 
     try{
@@ -1245,6 +1338,11 @@
         return `<span class="type-badge" style="background:${typeColorVar(s.type)}">${escapeHtml(s.name)}</span>`;
       }).join('');
 
+      const statSum = ['hp','patk','matk','pdef','mdef','agi'].reduce((sum, k) => sum + (mon.stats?.[k] || 0), 0);
+      const notesHtml = mon.notes
+        ? `<div style="margin-top:10px; font-size:0.8rem; color:var(--text-dim); border-top:1px solid var(--line); padding-top:10px; white-space:pre-wrap;">${escapeHtml(mon.notes)}</div>`
+        : '';
+
       card.innerHTML = `
         <div class="mon-card-actions">
           <button class="up-btn" data-idx="${idx}" title="Move up" ${idx === 0 ? 'disabled' : ''}>▲</button>
@@ -1258,7 +1356,9 @@
           <h3>${escapeHtml(mon.name)}</h3>
         </div>
         ${hexSVG(mon.stats || {})}
+        <div style="font-size:0.78rem; color:var(--text-dim); margin-top:4px;">Stat total: ${statSum}${mon.statBudget ? ` / ${mon.statBudget}` : ''}</div>
         <div class="mon-skills">${skillTags || '<span style="color:var(--text-dim); font-size:0.78rem;">No skills assigned</span>'}</div>
+        ${notesHtml}
       `;
       grid.appendChild(card);
     });
