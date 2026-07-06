@@ -1474,14 +1474,22 @@
 
     try{
       setSyncStatus('Saving…', true);
+      const wasEditingId = editingMonId;
       if(editingMonId) await updateDoc(doc(db, MONS_COLLECTION, editingMonId), monData);
       else await addDoc(collection(db, MONS_COLLECTION), monData);
       setSyncStatus('Synced');
+      resetMonForm();
+      if(wasEditingId){
+        setTimeout(() => {
+          const target = document.querySelector(`.mon-card[data-mon-id="${wasEditingId}"]`);
+          if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+        }, 150);
+      }
     }catch(err){
       console.error(err);
       setSyncStatus('Sync failed — check connection');
+      resetMonForm();
     }
-    resetMonForm();
   });
 
   function hexSVG(stats){
@@ -1615,6 +1623,7 @@
       const idxInOrder = orderSorted.findIndex(m => m.id === mon.id);
       const card = document.createElement('div');
       card.className = 'mon-card' + (mon.id === editingMonId ? ' editing' : '');
+      card.dataset.monId = mon.id;
       const iconHtml = mon.icon ? `<img src="${mon.icon}" alt="${escapeHtml(mon.name)}">` : `<span class="placeholder">?</span>`;
 
       const typeBadges = [mon.type1, mon.type2].filter(Boolean).map(t =>
