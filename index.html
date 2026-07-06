@@ -1049,6 +1049,8 @@
 
     tbody.querySelectorAll('.del-btn:not(.edit-skill-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
+        const skill = skills.find(s => s.id === btn.dataset.id);
+        if(!confirm(`Delete skill "${skill ? skill.name : ''}"? This can't be undone.`)) return;
         skills = skills.filter(m => m.id !== btn.dataset.id);
         if(editingSkillId === btn.dataset.id) resetSkillForm();
         renderSkills(); renderSkillPicker(); saveShared();
@@ -1221,6 +1223,8 @@
 
     tbody.querySelectorAll('.del-btn:not(.edit-talent-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
+        const talent = talents.find(t => t.id === btn.dataset.id);
+        if(!confirm(`Delete talent "${talent ? talent.name : ''}"? This can't be undone.`)) return;
         talents = talents.filter(t => t.id !== btn.dataset.id);
         if(editingTalentId === btn.dataset.id) resetTalentForm();
         renderTalents(); renderTalentSelects(); saveShared();
@@ -1657,6 +1661,8 @@
 
     grid.querySelectorAll('.mon-del').forEach(btn => {
       btn.addEventListener('click', async () => {
+        const mon = mons.find(m => m.id === btn.dataset.id);
+        if(!confirm(`Delete "${mon ? mon.name : 'this Mon'}"? This can't be undone.`)) return;
         try{
           await deleteDoc(doc(db, MONS_COLLECTION, btn.dataset.id));
           if(editingMonId === btn.dataset.id) resetMonForm();
