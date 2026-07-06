@@ -63,6 +63,7 @@
     margin:0 auto 24px;
     display:flex;
     gap:8px;
+    flex-wrap:wrap;
   }
   .tab-btn{
     background:var(--panel);
@@ -116,7 +117,7 @@
     margin-bottom:6px;
   }
 
-  input, select{
+  input, select, textarea{
     width:100%;
     background:var(--panel-2);
     border:1px solid var(--line);
@@ -126,7 +127,7 @@
     font-family:'Inter', sans-serif;
     font-size:0.88rem;
   }
-  input:focus, select:focus{
+  input:focus, select:focus, textarea:focus{
     outline:none;
     border-color:var(--accent);
   }
@@ -187,6 +188,7 @@
   thead th:hover{ color:var(--accent); }
   thead th.sorted{ color:var(--accent); }
   thead th .arrow{ font-size:0.7rem; margin-left:3px; opacity:0.7; }
+  thead th.nosort{ cursor:default; }
 
   tbody tr{ border-bottom:1px solid var(--line); }
   tbody tr:hover{ background:rgba(255,255,255,0.02); }
@@ -306,8 +308,10 @@
     gap:10px;
   }
   .mon-form-grid .field.full{ grid-column: 1 / -1; }
+  .mon-form-grid .field.half{ grid-column: span 3; }
   @media (max-width:760px){
     .mon-form-grid{ grid-template-columns: 1fr 1fr; }
+    .mon-form-grid .field.half{ grid-column: span 1; }
   }
 
   .icon-row{
@@ -452,7 +456,7 @@
     display:flex;
     align-items:center;
     gap:12px;
-    margin-bottom:10px;
+    margin-bottom:6px;
   }
   .mon-head .icon-preview{ width:48px; height:48px; }
   .mon-head h3{
@@ -461,6 +465,11 @@
     font-size:1.05rem;
     color:var(--text);
   }
+  .mon-types{
+    display:flex;
+    gap:6px;
+    margin-bottom:10px;
+  }
   .mon-skills{
     display:flex;
     flex-wrap:wrap;
@@ -468,6 +477,21 @@
     margin-top:10px;
   }
   .mon-skills .type-badge{ font-size:0.68rem; padding:2px 8px; }
+
+  .mon-talents{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+  }
+  .talent-pill{
+    font-size:0.72rem;
+    color:var(--accent);
+    border:1px solid var(--line);
+    padding:2px 9px;
+    border-radius:20px;
+    background:rgba(201,168,106,0.06);
+  }
 
   .hex-labels text{
     font-size:9px;
@@ -478,6 +502,47 @@
     fill:var(--text);
     font-weight:600;
   }
+
+  /* Mon filter bar */
+  .filter-bar{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .filter-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .type-chip{
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:0.75rem;
+    font-weight:600;
+    color:var(--text-dim);
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    cursor:pointer;
+    user-select:none;
+  }
+  .type-chip.active{
+    color:#12141c;
+    border-color:transparent;
+  }
+  .sort-select-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .sort-select-wrap label{
+    font-size:0.75rem;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+  .sort-select-wrap select{ width:auto; min-width:180px; }
+  #mon-search{ max-width:280px; }
 </style>
 </head>
 <body>
@@ -501,6 +566,7 @@
 
 <div class="tabs">
   <button class="tab-btn active" id="tab-btn-skills">Skills</button>
+  <button class="tab-btn" id="tab-btn-talents">Talents</button>
   <button class="tab-btn" id="tab-btn-mons">Mons</button>
 </div>
 
@@ -558,13 +624,52 @@
               <th data-key="category">Category<span class="arrow"></span></th>
               <th data-key="power">Power<span class="arrow"></span></th>
               <th data-key="accuracy">Accuracy<span class="arrow"></span></th>
-              <th data-key="none" style="cursor:default;">Description</th>
-              <th data-key="none" style="cursor:default;"></th>
+              <th class="nosort">Description</th>
+              <th class="nosort"></th>
             </tr>
           </thead>
           <tbody id="skill-body"></tbody>
         </table>
         <div class="empty-state" id="empty-state">No skills yet. Add your first one above.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TALENTS TAB -->
+  <div id="panel-talents" style="display:none;">
+    <div class="panel">
+      <h2 id="talent-form-title">Add a talent</h2>
+      <div class="form-grid" style="grid-template-columns: 1fr 2fr auto;">
+        <div class="field">
+          <label for="t-name">Name</label>
+          <input id="t-name" type="text" placeholder="e.g. Thick Hide">
+        </div>
+        <div class="field">
+          <label for="t-desc">Description</label>
+          <input id="t-desc" type="text" placeholder="What it does">
+        </div>
+        <button class="add-btn" id="add-talent-btn" title="Add talent">+</button>
+      </div>
+      <button class="wide-btn secondary" id="cancel-talent-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
+    </div>
+
+    <div class="panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Talent list</span>
+        <span class="count-tag" id="talent-count-tag">0 talents</span>
+      </h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nosort">Name</th>
+              <th class="nosort">Description</th>
+              <th class="nosort"></th>
+            </tr>
+          </thead>
+          <tbody id="talent-body"></tbody>
+        </table>
+        <div class="empty-state" id="talent-empty-state">No talents yet. Add your first one above.</div>
       </div>
     </div>
   </div>
@@ -605,6 +710,14 @@
         <div class="field full">
           <label for="m-name">Name</label>
           <input id="m-name" type="text" placeholder="e.g. Pudloach">
+        </div>
+        <div class="field half">
+          <label for="m-type1">Type 1</label>
+          <select id="m-type1"></select>
+        </div>
+        <div class="field half">
+          <label for="m-type2">Type 2 (optional)</label>
+          <select id="m-type2"></select>
         </div>
         <div class="field">
           <label for="m-order">List position</label>
@@ -647,14 +760,29 @@
         </div>
       </div>
 
-      <div class="field full" style="margin-top:16px;">
-        <label for="m-notes">Notes</label>
-        <textarea id="m-notes" rows="3" placeholder="Anything about this Mon — lore, role, quirks…" style="width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:9px 10px; border-radius:6px; font-family:'Inter', sans-serif; font-size:0.88rem; resize:vertical;"></textarea>
+      <div class="mon-form-grid" style="margin-top:10px;">
+        <div class="field half">
+          <label for="m-talent1">Talent 1</label>
+          <select id="m-talent1"></select>
+        </div>
+        <div class="field half">
+          <label for="m-talent2">Talent 2</label>
+          <select id="m-talent2"></select>
+        </div>
+        <div class="field half">
+          <label for="m-talent3">Talent 3</label>
+          <select id="m-talent3"></select>
+        </div>
       </div>
 
       <div class="field full" style="margin-top:16px;">
         <label>Movepool (select from skill list)</label>
         <div class="skill-picker" id="skill-picker"></div>
+      </div>
+
+      <div class="field full" style="margin-top:16px;">
+        <label for="m-notes">Notes</label>
+        <textarea id="m-notes" rows="3" placeholder="Anything about this Mon — lore, role, quirks…"></textarea>
       </div>
 
       <div style="display:flex; gap:10px; margin-top:16px;">
@@ -668,6 +796,36 @@
         <span>Mon list</span>
         <span class="count-tag" id="mon-count-tag">0 mons</span>
       </h2>
+
+      <div class="filter-bar">
+        <div class="filter-row">
+          <input type="text" id="mon-search" placeholder="Search Mons by name…">
+          <div class="sort-select-wrap">
+            <label for="mon-sort">Sort:</label>
+            <select id="mon-sort">
+              <option value="order">List position</option>
+              <option value="name-asc">Name (A–Z)</option>
+              <option value="name-desc">Name (Z–A)</option>
+              <option value="total-desc">Stat total (high–low)</option>
+              <option value="total-asc">Stat total (low–high)</option>
+              <option value="hp-desc">HP (high–low)</option>
+              <option value="hp-asc">HP (low–high)</option>
+              <option value="patk-desc">P-ATK (high–low)</option>
+              <option value="patk-asc">P-ATK (low–high)</option>
+              <option value="matk-desc">M-ATK (high–low)</option>
+              <option value="matk-asc">M-ATK (low–high)</option>
+              <option value="pdef-desc">P-DEF (high–low)</option>
+              <option value="pdef-asc">P-DEF (low–high)</option>
+              <option value="mdef-desc">M-DEF (high–low)</option>
+              <option value="mdef-asc">M-DEF (low–high)</option>
+              <option value="agi-desc">AGI (high–low)</option>
+              <option value="agi-asc">AGI (low–high)</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-row" id="type-filter-row"></div>
+      </div>
+
       <div class="mon-grid" id="mon-grid"></div>
       <div class="empty-state" id="mon-empty-state">No Mons yet. Add your first one above.</div>
     </div>
@@ -703,66 +861,68 @@
 
   const TYPES = ["Basic","Fire","Water","Volt","Flora","Frost","Mystic","Earth","Spirit","Holy","Iron","Insect","Wind"];
 
-  const typeSelect = document.getElementById('f-type');
-  TYPES.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
-    typeSelect.appendChild(opt);
-  });
-
-  let skills = [];
-  let sortKey = null;
-  let sortDir = 1;
-  let saveTimeout = null;
-  let editingSkillId = null;
-
-  let mons = [];
-  let selectedSkillIds = new Set();
-  let pendingIconData = null;
-  let editingMonId = null;
-
-  const syncTag = document.getElementById('sync-tag');
-
-  function setSyncStatus(text, saving){
-    syncTag.textContent = text;
-    syncTag.classList.toggle('saving', !!saving);
-  }
-
   function typeColorVar(type){
     return `var(--${type.toLowerCase()})`;
   }
-
   function escapeHtml(str){
     const div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
   }
 
-  /* ---------------- TABS ---------------- */
+  const syncTag = document.getElementById('sync-tag');
+  function setSyncStatus(text, saving){
+    syncTag.textContent = text;
+    syncTag.classList.toggle('saving', !!saving);
+  }
+
+  /* ============ TYPE SELECTS SETUP ============ */
+  const typeSelect = document.getElementById('f-type');
+  TYPES.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    typeSelect.appendChild(opt);
+  });
+
+  const monType1 = document.getElementById('m-type1');
+  const monType2 = document.getElementById('m-type2');
+  TYPES.forEach(t => {
+    const opt1 = document.createElement('option');
+    opt1.value = t; opt1.textContent = t;
+    monType1.appendChild(opt1);
+  });
+  monType2.appendChild(new Option('None', ''));
+  TYPES.forEach(t => {
+    const opt2 = document.createElement('option');
+    opt2.value = t; opt2.textContent = t;
+    monType2.appendChild(opt2);
+  });
+
+  /* ============ TABS ============ */
   const tabBtnSkills = document.getElementById('tab-btn-skills');
+  const tabBtnTalents = document.getElementById('tab-btn-talents');
   const tabBtnMons = document.getElementById('tab-btn-mons');
   const panelSkills = document.getElementById('panel-skills');
+  const panelTalents = document.getElementById('panel-talents');
   const panelMons = document.getElementById('panel-mons');
   const headerSub = document.getElementById('header-sub');
 
-  tabBtnSkills.addEventListener('click', () => {
-    tabBtnSkills.classList.add('active');
-    tabBtnMons.classList.remove('active');
-    panelSkills.style.display = 'block';
-    panelMons.style.display = 'none';
-    headerSub.childNodes[0].textContent = 'Skill list & sort tool ';
-  });
-  tabBtnMons.addEventListener('click', () => {
-    tabBtnMons.classList.add('active');
-    tabBtnSkills.classList.remove('active');
-    panelMons.style.display = 'block';
-    panelSkills.style.display = 'none';
-    headerSub.childNodes[0].textContent = 'Mon roster & stats ';
-    renderSkillPicker();
-  });
+  function showTab(which){
+    tabBtnSkills.classList.toggle('active', which === 'skills');
+    tabBtnTalents.classList.toggle('active', which === 'talents');
+    tabBtnMons.classList.toggle('active', which === 'mons');
+    panelSkills.style.display = which === 'skills' ? 'block' : 'none';
+    panelTalents.style.display = which === 'talents' ? 'block' : 'none';
+    panelMons.style.display = which === 'mons' ? 'block' : 'none';
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Mon roster & stats ' };
+    headerSub.childNodes[0].textContent = subs[which];
+    if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); }
+  }
+  tabBtnSkills.addEventListener('click', () => showTab('skills'));
+  tabBtnTalents.addEventListener('click', () => showTab('talents'));
+  tabBtnMons.addEventListener('click', () => showTab('mons'));
 
-  /* ---------------- LOCK SCREEN ---------------- */
+  /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
   const appEl = document.getElementById('app');
   const lockInput = document.getElementById('lock-input');
@@ -777,54 +937,57 @@
       lockError.textContent = 'Incorrect password';
     }
   }
-
   async function unlockApp(){
     lockScreen.style.display = 'none';
     appEl.style.display = 'block';
-    try{
-      await signInAnonymously(auth);
-    }catch(err){
-      console.error(err);
-      setSyncStatus('Sign-in failed');
-    }
+    try{ await signInAnonymously(auth); }
+    catch(err){ console.error(err); setSyncStatus('Sign-in failed'); }
   }
-
   lockBtn.addEventListener('click', tryUnlock);
   lockInput.addEventListener('keydown', e => { if(e.key === 'Enter') tryUnlock(); });
 
   onAuthStateChanged(auth, user => {
     if(user){
-      loadSkills();
+      loadShared();
       listenMons();
     }
   });
+  if(sessionStorage.getItem('movedex-unlocked') === 'yes'){ unlockApp(); }
 
-  if(sessionStorage.getItem('movedex-unlocked') === 'yes'){
-    unlockApp();
-  }
+  /* ============ SHARED DOC: SKILLS + TALENTS ============ */
+  let skills = [];
+  let talents = [];
+  let sortKey = null;
+  let sortDir = 1;
+  let saveTimeout = null;
+  let editingSkillId = null;
+  let editingTalentId = null;
 
-  /* ---------------- SKILLS ---------------- */
-  async function loadSkills(){
+  async function loadShared(){
     setSyncStatus('Loading…', true);
     try{
       const snap = await getDoc(doc(db, ...SKILLS_DOC));
-      skills = snap.exists() && Array.isArray(snap.data().skills) ? snap.data().skills : [];
+      const data = snap.exists() ? snap.data() : {};
+      skills = Array.isArray(data.skills) ? data.skills : [];
+      talents = Array.isArray(data.talents) ? data.talents : [];
       setSyncStatus('Synced');
     }catch(err){
       console.error(err);
       setSyncStatus('Sync failed — check connection');
     }
     renderSkills();
+    renderTalents();
     renderSkillPicker();
+    renderTalentSelects();
     renderMons();
   }
 
-  function saveSkills(){
+  function saveShared(){
     setSyncStatus('Saving…', true);
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try{
-        await setDoc(doc(db, ...SKILLS_DOC), { skills });
+        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents });
         setSyncStatus('Synced');
       }catch(err){
         console.error(err);
@@ -833,11 +996,11 @@
     }, 400);
   }
 
+  /* ============ SKILLS ============ */
   function renderSkills(){
     const tbody = document.getElementById('skill-body');
     const emptyState = document.getElementById('empty-state');
     const countTag = document.getElementById('count-tag');
-
     countTag.textContent = `${skills.length} skill${skills.length === 1 ? '' : 's'}`;
 
     let list = [...skills];
@@ -874,7 +1037,7 @@
       });
     }
 
-    document.querySelectorAll('#panel-skills thead th').forEach(th => {
+    document.querySelectorAll('#panel-skills thead th[data-key]').forEach(th => {
       th.classList.remove('sorted');
       const arrow = th.querySelector('.arrow');
       if(arrow) arrow.textContent = '';
@@ -888,12 +1051,9 @@
       btn.addEventListener('click', () => {
         skills = skills.filter(m => m.id !== btn.dataset.id);
         if(editingSkillId === btn.dataset.id) resetSkillForm();
-        renderSkills();
-        renderSkillPicker();
-        saveSkills();
+        renderSkills(); renderSkillPicker(); saveShared();
       });
     });
-
     tbody.querySelectorAll('.edit-skill-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const skill = skills.find(s => s.id === btn.dataset.id);
@@ -919,7 +1079,6 @@
     skillFormTitle.textContent = 'Add a skill';
     cancelSkillEditBtn.style.display = 'none';
   }
-
   function loadSkillIntoForm(skill){
     editingSkillId = skill.id;
     document.getElementById('f-name').value = skill.name || '';
@@ -934,7 +1093,6 @@
     cancelSkillEditBtn.style.display = 'inline-block';
     document.getElementById('f-name').focus();
   }
-
   cancelSkillEditBtn.addEventListener('click', resetSkillForm);
 
   addSkillBtn.addEventListener('click', () => {
@@ -944,54 +1102,35 @@
     const power = document.getElementById('f-power').value;
     const accuracy = document.getElementById('f-acc').value;
     const desc = document.getElementById('f-desc').value.trim();
-
-    if(!name){
-      document.getElementById('f-name').focus();
-      return;
-    }
+    if(!name){ document.getElementById('f-name').focus(); return; }
 
     if(editingSkillId){
       const idx = skills.findIndex(s => s.id === editingSkillId);
       if(idx !== -1){
-        skills[idx] = {
-          ...skills[idx],
-          name, type, category,
+        skills[idx] = { ...skills[idx], name, type, category,
           power: power === '' ? '' : Number(power),
-          accuracy: accuracy === '' ? '' : Number(accuracy),
-          desc
-        };
+          accuracy: accuracy === '' ? '' : Number(accuracy), desc };
       }
     } else {
       skills.push({
         id: Date.now().toString() + Math.random().toString(36).slice(2,6),
         name, type, category,
         power: power === '' ? '' : Number(power),
-        accuracy: accuracy === '' ? '' : Number(accuracy),
-        desc
+        accuracy: accuracy === '' ? '' : Number(accuracy), desc
       });
     }
-
     resetSkillForm();
-    renderSkills();
-    renderSkillPicker();
-    saveSkills();
+    renderSkills(); renderSkillPicker(); saveShared();
   });
 
-  document.querySelectorAll('#panel-skills thead th').forEach(th => {
+  document.querySelectorAll('#panel-skills thead th[data-key]').forEach(th => {
     th.addEventListener('click', () => {
       const key = th.dataset.key;
-      if(key === 'none') return;
-      if(sortKey === key){
-        sortDir *= -1;
-      } else {
-        sortKey = key;
-        sortDir = 1;
-      }
+      if(sortKey === key){ sortDir *= -1; } else { sortKey = key; sortDir = 1; }
       renderSkills();
     });
   });
 
-  /* ---------------- SKILL PICKER (for mon movepool) ---------------- */
   function renderSkillPicker(){
     const picker = document.getElementById('skill-picker');
     if(skills.length === 0){
@@ -1016,7 +1155,97 @@
     });
   }
 
-  /* ---------------- ICON CROPPER (grid based, touch-friendly) ---------------- */
+  /* ============ TALENTS ============ */
+  const addTalentBtn = document.getElementById('add-talent-btn');
+  const cancelTalentEditBtn = document.getElementById('cancel-talent-edit-btn');
+  const talentFormTitle = document.getElementById('talent-form-title');
+
+  function resetTalentForm(){
+    document.getElementById('t-name').value = '';
+    document.getElementById('t-desc').value = '';
+    editingTalentId = null;
+    addTalentBtn.textContent = '+';
+    talentFormTitle.textContent = 'Add a talent';
+    cancelTalentEditBtn.style.display = 'none';
+  }
+  function loadTalentIntoForm(talent){
+    editingTalentId = talent.id;
+    document.getElementById('t-name').value = talent.name || '';
+    document.getElementById('t-desc').value = talent.desc || '';
+    addTalentBtn.textContent = '✓';
+    talentFormTitle.textContent = `Editing ${talent.name}`;
+    cancelTalentEditBtn.style.display = 'inline-block';
+    document.getElementById('t-name').focus();
+  }
+  cancelTalentEditBtn.addEventListener('click', resetTalentForm);
+
+  addTalentBtn.addEventListener('click', () => {
+    const name = document.getElementById('t-name').value.trim();
+    const desc = document.getElementById('t-desc').value.trim();
+    if(!name){ document.getElementById('t-name').focus(); return; }
+
+    if(editingTalentId){
+      const idx = talents.findIndex(t => t.id === editingTalentId);
+      if(idx !== -1) talents[idx] = { ...talents[idx], name, desc };
+    } else {
+      talents.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, desc });
+    }
+    resetTalentForm();
+    renderTalents(); renderTalentSelects(); saveShared();
+  });
+
+  function renderTalents(){
+    const tbody = document.getElementById('talent-body');
+    const emptyState = document.getElementById('talent-empty-state');
+    const countTag = document.getElementById('talent-count-tag');
+    countTag.textContent = `${talents.length} talent${talents.length === 1 ? '' : 's'}`;
+
+    tbody.innerHTML = '';
+    if(talents.length === 0){
+      emptyState.style.display = 'block';
+    } else {
+      emptyState.style.display = 'none';
+      talents.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(t.name)}</td>
+          <td class="desc-cell">${escapeHtml(t.desc) || '—'}</td>
+          <td style="white-space:nowrap;">
+            <button class="del-btn edit-talent-btn" data-id="${t.id}" title="Edit">✎</button>
+            <button class="del-btn" data-id="${t.id}" title="Remove">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    tbody.querySelectorAll('.del-btn:not(.edit-talent-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        talents = talents.filter(t => t.id !== btn.dataset.id);
+        if(editingTalentId === btn.dataset.id) resetTalentForm();
+        renderTalents(); renderTalentSelects(); saveShared();
+      });
+    });
+    tbody.querySelectorAll('.edit-talent-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const talent = talents.find(t => t.id === btn.dataset.id);
+        if(talent) loadTalentIntoForm(talent);
+      });
+    });
+  }
+
+  function renderTalentSelects(){
+    ['m-talent1','m-talent2','m-talent3'].forEach(id => {
+      const sel = document.getElementById(id);
+      const current = sel.value;
+      sel.innerHTML = '';
+      sel.appendChild(new Option('None', ''));
+      talents.forEach(t => sel.appendChild(new Option(t.name, t.id)));
+      if(talents.some(t => t.id === current)) sel.value = current;
+    });
+  }
+
+  /* ============ ICON CROPPER ============ */
   const sheetUpload = document.getElementById('sheet-upload');
   const cropperWrap = document.getElementById('cropper-wrap');
   const sheetCanvas = document.getElementById('sheet-canvas');
@@ -1031,7 +1260,8 @@
   let sheetScale = 1;
   let gridCols = 15;
   let gridRows = 8;
-  let selectedCell = null; // {col, row}
+  let selectedCell = null;
+  let pendingIconData = null;
 
   sheetUpload.addEventListener('change', e => {
     const file = e.target.files[0];
@@ -1065,28 +1295,18 @@
     if(!sheetImg) return;
     ctx.clearRect(0,0,sheetCanvas.width, sheetCanvas.height);
     ctx.drawImage(sheetImg, 0, 0, sheetCanvas.width, sheetCanvas.height);
-
     const cellW = sheetCanvas.width / gridCols;
     const cellH = sheetCanvas.height / gridRows;
-
     ctx.strokeStyle = 'rgba(255,255,255,0.25)';
     ctx.lineWidth = 1;
     for(let c = 1; c < gridCols; c++){
-      ctx.beginPath();
-      ctx.moveTo(c * cellW, 0);
-      ctx.lineTo(c * cellW, sheetCanvas.height);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c * cellW, 0); ctx.lineTo(c * cellW, sheetCanvas.height); ctx.stroke();
     }
     for(let r = 1; r < gridRows; r++){
-      ctx.beginPath();
-      ctx.moveTo(0, r * cellH);
-      ctx.lineTo(sheetCanvas.width, r * cellH);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, r * cellH); ctx.lineTo(sheetCanvas.width, r * cellH); ctx.stroke();
     }
-
     if(selectedCell){
-      ctx.strokeStyle = '#c9a86a';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#c9a86a'; ctx.lineWidth = 2;
       ctx.strokeRect(selectedCell.col * cellW, selectedCell.row * cellH, cellW, cellH);
       ctx.fillStyle = 'rgba(201,168,106,0.2)';
       ctx.fillRect(selectedCell.col * cellW, selectedCell.row * cellH, cellW, cellH);
@@ -1101,7 +1321,6 @@
     const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   }
-
   function selectCellAt(pos){
     const cellW = sheetCanvas.width / gridCols;
     const cellH = sheetCanvas.height / gridRows;
@@ -1110,11 +1329,7 @@
     selectedCell = { col, row };
     drawSheet();
   }
-
-  sheetCanvas.addEventListener('click', e => {
-    if(!sheetImg) return;
-    selectCellAt(getPos(e));
-  });
+  sheetCanvas.addEventListener('click', e => { if(sheetImg) selectCellAt(getPos(e)); });
   sheetCanvas.addEventListener('touchend', e => {
     if(!sheetImg) return;
     e.preventDefault();
@@ -1122,15 +1337,11 @@
   }, { passive:false });
 
   useCropBtn.addEventListener('click', () => {
-    if(!sheetImg || !selectedCell){
-      alert('Upload a sheet, build the grid, and tap a cell first.');
-      return;
-    }
+    if(!sheetImg || !selectedCell){ alert('Upload a sheet, build the grid, and tap a cell first.'); return; }
     const cellWFull = sheetImg.width / gridCols;
     const cellHFull = sheetImg.height / gridRows;
     const srcX = selectedCell.col * cellWFull;
     const srcY = selectedCell.row * cellHFull;
-
     const out = document.createElement('canvas');
     const maxSide = 96;
     const scale = Math.min(1, maxSide / Math.max(cellWFull, cellHFull));
@@ -1139,12 +1350,18 @@
     const octx = out.getContext('2d');
     octx.imageSmoothingEnabled = false;
     octx.drawImage(sheetImg, srcX, srcY, cellWFull, cellHFull, 0, 0, out.width, out.height);
-
     pendingIconData = out.toDataURL('image/png');
     iconPreview.innerHTML = `<img src="${pendingIconData}" alt="icon">`;
   });
 
-  /* ---------------- MONS ---------------- */
+  /* ============ MONS ============ */
+  let mons = [];
+  let selectedSkillIds = new Set();
+  let editingMonId = null;
+  let monSearchTerm = '';
+  let activeTypeFilters = new Set();
+  let monSortMode = 'order';
+
   function listenMons(){
     const q = query(collection(db, MONS_COLLECTION));
     onSnapshot(q, snap => {
@@ -1177,7 +1394,10 @@
     document.getElementById('m-order').value = '';
     document.getElementById('m-budget').value = '';
     document.getElementById('m-notes').value = '';
-    ['m-hp','m-patk','m-matk','m-pdef','m-mdef','m-agi'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('m-type1').selectedIndex = 0;
+    document.getElementById('m-type2').value = '';
+    ['m-talent1','m-talent2','m-talent3'].forEach(id => document.getElementById(id).value = '');
+    statFieldIds.forEach(id => document.getElementById(id).value = '');
     selectedSkillIds = new Set();
     pendingIconData = null;
     iconPreview.innerHTML = '<span class="placeholder">No icon</span>';
@@ -1195,6 +1415,8 @@
     document.getElementById('m-order').value = mon.order ?? '';
     document.getElementById('m-budget').value = mon.statBudget ?? '';
     document.getElementById('m-notes').value = mon.notes ?? '';
+    document.getElementById('m-type1').value = mon.type1 || TYPES[0];
+    document.getElementById('m-type2').value = mon.type2 || '';
     document.getElementById('m-hp').value = mon.stats?.hp ?? '';
     document.getElementById('m-patk').value = mon.stats?.patk ?? '';
     document.getElementById('m-matk').value = mon.stats?.matk ?? '';
@@ -1204,6 +1426,11 @@
     selectedSkillIds = new Set(mon.skillIds || []);
     pendingIconData = mon.icon || null;
     iconPreview.innerHTML = mon.icon ? `<img src="${mon.icon}" alt="icon">` : '<span class="placeholder">No icon</span>';
+    renderTalentSelects();
+    const talentIds = mon.talentIds || [];
+    document.getElementById('m-talent1').value = talentIds[0] || '';
+    document.getElementById('m-talent2').value = talentIds[1] || '';
+    document.getElementById('m-talent3').value = talentIds[2] || '';
     addMonBtn.textContent = 'Save changes';
     monFormTitle.textContent = `Editing ${mon.name}`;
     cancelEditBtn.style.display = 'inline-block';
@@ -1211,15 +1438,12 @@
     updateStatTotalDisplay();
     document.getElementById('panel-mons').scrollIntoView({ behavior:'smooth', block:'start' });
   }
-
   cancelEditBtn.addEventListener('click', resetMonForm);
 
   addMonBtn.addEventListener('click', async () => {
     const name = document.getElementById('m-name').value.trim();
-    if(!name){
-      document.getElementById('m-name').focus();
-      return;
-    }
+    if(!name){ document.getElementById('m-name').focus(); return; }
+
     const stats = {
       hp: Number(document.getElementById('m-hp').value) || 0,
       patk: Number(document.getElementById('m-patk').value) || 0,
@@ -1232,30 +1456,27 @@
     const order = orderVal === '' ? (mons.length ? Math.max(...mons.map(m => m.order || 0)) + 1 : 1) : Number(orderVal);
     const statBudget = Number(document.getElementById('m-budget').value) || 0;
     const notes = document.getElementById('m-notes').value.trim();
+    const type1 = document.getElementById('m-type1').value;
+    const type2 = document.getElementById('m-type2').value;
+    const talentIds = ['m-talent1','m-talent2','m-talent3']
+      .map(id => document.getElementById(id).value)
+      .filter(v => v);
 
     const monData = {
-      name,
-      icon: pendingIconData || null,
-      stats,
+      name, icon: pendingIconData || null, stats,
       skillIds: Array.from(selectedSkillIds),
-      order,
-      statBudget,
-      notes
+      order, statBudget, notes, type1, type2, talentIds
     };
 
     try{
       setSyncStatus('Saving…', true);
-      if(editingMonId){
-        await updateDoc(doc(db, MONS_COLLECTION, editingMonId), monData);
-      } else {
-        await addDoc(collection(db, MONS_COLLECTION), monData);
-      }
+      if(editingMonId) await updateDoc(doc(db, MONS_COLLECTION, editingMonId), monData);
+      else await addDoc(collection(db, MONS_COLLECTION), monData);
       setSyncStatus('Synced');
     }catch(err){
       console.error(err);
       setSyncStatus('Sync failed — check connection');
     }
-
     resetMonForm();
   });
 
@@ -1281,13 +1502,11 @@
     });
     const outerPath = outerPts.map(p => p.join(',')).join(' ');
     const valPath = valPts.map(p => p.join(',')).join(' ');
-
-    const labels = order.map((o, i) => {
+    const labels = order.map(o => {
       const [lx, ly] = pt(o.angle, R + 24);
       const val = stats[o.key] || 0;
       return `<text x="${lx}" y="${ly-3}" text-anchor="middle">${o.label}</text><text class="val" x="${lx}" y="${ly+10}" text-anchor="middle">${val}</text>`;
     }).join('');
-
     return `
       <svg viewBox="0 0 200 210" width="200" height="210" class="hex-labels">
         <polygon points="${outerPath}" fill="none" stroke="#2c3040" stroke-width="1"/>
@@ -1309,28 +1528,94 @@
     }
   }
 
+  /* ---- filter bar setup ---- */
+  const typeFilterRow = document.getElementById('type-filter-row');
+  TYPES.forEach(t => {
+    const chip = document.createElement('span');
+    chip.className = 'type-chip';
+    chip.textContent = t;
+    chip.dataset.type = t;
+    chip.addEventListener('click', () => {
+      if(activeTypeFilters.has(t)){
+        activeTypeFilters.delete(t);
+        chip.classList.remove('active');
+        chip.style.background = '';
+        chip.style.color = '';
+      } else {
+        activeTypeFilters.add(t);
+        chip.classList.add('active');
+        chip.style.background = typeColorVar(t);
+      }
+      renderMons();
+    });
+    typeFilterRow.appendChild(chip);
+  });
+
+  document.getElementById('mon-search').addEventListener('input', e => {
+    monSearchTerm = e.target.value.trim().toLowerCase();
+    renderMons();
+  });
+  document.getElementById('mon-sort').addEventListener('change', e => {
+    monSortMode = e.target.value;
+    renderMons();
+  });
+
+  function statSumOf(mon){
+    return ['hp','patk','matk','pdef','mdef','agi'].reduce((sum,k) => sum + (mon.stats?.[k] || 0), 0);
+  }
+
   function renderMons(){
     const grid = document.getElementById('mon-grid');
     const emptyState = document.getElementById('mon-empty-state');
     const countTag = document.getElementById('mon-count-tag');
 
-    const sorted = [...mons].sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
-
     countTag.textContent = `${mons.length} mon${mons.length === 1 ? '' : 's'}`;
+
+    let list = [...mons];
+
+    if(monSearchTerm){
+      list = list.filter(m => (m.name || '').toLowerCase().includes(monSearchTerm));
+    }
+    if(activeTypeFilters.size > 0){
+      list = list.filter(m => activeTypeFilters.has(m.type1) || activeTypeFilters.has(m.type2));
+    }
+
+    const [sortField, sortDirWord] = monSortMode.split('-');
+    const dir = sortDirWord === 'asc' ? 1 : -1;
+    if(sortField === 'order'){
+      list.sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
+    } else if(sortField === 'name'){
+      list.sort((a,b) => dir * (a.name || '').localeCompare(b.name || ''));
+    } else if(sortField === 'total'){
+      list.sort((a,b) => dir * -1 * (statSumOf(a) - statSumOf(b)));
+    } else {
+      list.sort((a,b) => dir * -1 * ((a.stats?.[sortField] || 0) - (b.stats?.[sortField] || 0)));
+    }
 
     grid.innerHTML = '';
     if(mons.length === 0){
       emptyState.style.display = 'block';
+      emptyState.textContent = 'No Mons yet. Add your first one above.';
+      return;
+    }
+    if(list.length === 0){
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'No Mons match your search/filter.';
       return;
     }
     emptyState.style.display = 'none';
 
-    sorted.forEach((mon, idx) => {
+    const orderSorted = [...mons].sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
+
+    list.forEach(mon => {
+      const idxInOrder = orderSorted.findIndex(m => m.id === mon.id);
       const card = document.createElement('div');
       card.className = 'mon-card' + (mon.id === editingMonId ? ' editing' : '');
-      const iconHtml = mon.icon
-        ? `<img src="${mon.icon}" alt="${escapeHtml(mon.name)}">`
-        : `<span class="placeholder">?</span>`;
+      const iconHtml = mon.icon ? `<img src="${mon.icon}" alt="${escapeHtml(mon.name)}">` : `<span class="placeholder">?</span>`;
+
+      const typeBadges = [mon.type1, mon.type2].filter(Boolean).map(t =>
+        `<span class="type-badge" style="background:${typeColorVar(t)}">${t}</span>`
+      ).join('');
 
       const skillTags = (mon.skillIds || []).map(id => {
         const s = skills.find(sk => sk.id === id);
@@ -1338,15 +1623,20 @@
         return `<span class="type-badge" style="background:${typeColorVar(s.type)}">${escapeHtml(s.name)}</span>`;
       }).join('');
 
-      const statSum = ['hp','patk','matk','pdef','mdef','agi'].reduce((sum, k) => sum + (mon.stats?.[k] || 0), 0);
+      const talentPills = (mon.talentIds || []).map(id => {
+        const t = talents.find(tt => tt.id === id);
+        return t ? `<span class="talent-pill" title="${escapeHtml(t.desc||'')}">${escapeHtml(t.name)}</span>` : '';
+      }).join('');
+
+      const statSum = statSumOf(mon);
       const notesHtml = mon.notes
         ? `<div style="margin-top:10px; font-size:0.8rem; color:var(--text-dim); border-top:1px solid var(--line); padding-top:10px; white-space:pre-wrap;">${escapeHtml(mon.notes)}</div>`
         : '';
 
       card.innerHTML = `
         <div class="mon-card-actions">
-          <button class="up-btn" data-idx="${idx}" title="Move up" ${idx === 0 ? 'disabled' : ''}>▲</button>
-          <button class="down-btn" data-idx="${idx}" title="Move down" ${idx === sorted.length - 1 ? 'disabled' : ''}>▼</button>
+          <button class="up-btn" data-idx="${idxInOrder}" title="Move up" ${idxInOrder <= 0 ? 'disabled' : ''}>▲</button>
+          <button class="down-btn" data-idx="${idxInOrder}" title="Move down" ${idxInOrder >= orderSorted.length - 1 ? 'disabled' : ''}>▼</button>
           <button class="edit-btn" data-id="${mon.id}" title="Edit">✎</button>
           <button class="danger mon-del" data-id="${mon.id}" title="Remove">✕</button>
         </div>
@@ -1355,8 +1645,10 @@
           <div class="icon-preview">${iconHtml}</div>
           <h3>${escapeHtml(mon.name)}</h3>
         </div>
+        <div class="mon-types">${typeBadges}</div>
         ${hexSVG(mon.stats || {})}
         <div style="font-size:0.78rem; color:var(--text-dim); margin-top:4px;">Stat total: ${statSum}${mon.statBudget ? ` / ${mon.statBudget}` : ''}</div>
+        <div class="mon-talents">${talentPills}</div>
         <div class="mon-skills">${skillTags || '<span style="color:var(--text-dim); font-size:0.78rem;">No skills assigned</span>'}</div>
         ${notesHtml}
       `;
@@ -1374,24 +1666,22 @@
         }
       });
     });
-
     grid.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const mon = mons.find(m => m.id === btn.dataset.id);
         if(mon) loadMonIntoForm(mon);
       });
     });
-
     grid.querySelectorAll('.up-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const i = Number(btn.dataset.idx);
-        if(i > 0) swapOrder(sorted[i], sorted[i-1]);
+        if(i > 0) swapOrder(orderSorted[i], orderSorted[i-1]);
       });
     });
     grid.querySelectorAll('.down-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const i = Number(btn.dataset.idx);
-        if(i < sorted.length - 1) swapOrder(sorted[i], sorted[i+1]);
+        if(i < orderSorted.length - 1) swapOrder(orderSorted[i], orderSorted[i+1]);
       });
     });
   }
