@@ -493,6 +493,36 @@
     background:rgba(201,168,106,0.06);
   }
 
+  .evo-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:10px;
+    min-height:36px;
+  }
+  .evo-side{
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .evo-icon{
+    width:32px;
+    height:32px;
+    border-radius:6px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .evo-icon img{ width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
+  .evo-arrow{
+    color:var(--text-dim);
+    font-size:0.9rem;
+  }
+
   /* Hover tooltip */
   .tt{ position:relative; cursor:default; }
   .tt::after{
@@ -806,8 +836,15 @@
       </div>
       <div class="mon-form-grid" style="margin-top:10px;">
         <div class="field half"><label for="m-ascension1">Ascension 1</label><select id="m-ascension1"></select></div>
+        <div class="field half"><label for="m-ascension1-method">How it ascends</label><input id="m-ascension1-method" type="text" placeholder="e.g. Level 30 near water"></div>
+      </div>
+      <div class="mon-form-grid" style="margin-top:10px;">
         <div class="field half"><label for="m-ascension2">Ascension 2</label><select id="m-ascension2"></select></div>
+        <div class="field half"><label for="m-ascension2-method">How it ascends</label><input id="m-ascension2-method" type="text" placeholder="e.g. Level 30 near water"></div>
+      </div>
+      <div class="mon-form-grid" style="margin-top:10px;">
         <div class="field half"><label for="m-ascension3">Ascension 3</label><select id="m-ascension3"></select></div>
+        <div class="field half"><label for="m-ascension3-method">How it ascends</label><input id="m-ascension3-method" type="text" placeholder="e.g. Level 30 near water"></div>
       </div>
 
       <div class="field full" style="margin-top:16px;">
@@ -1289,7 +1326,7 @@
   }
 
   function renderAscensionSelects(){
-    const sortedMons = [...mons].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    const sortedMons = [...mons].sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
     const excludeId = editingMonId;
     const pre = document.getElementById('m-preascension');
     const preCurrent = pre.value;
@@ -1462,6 +1499,7 @@
     ['m-talent1','m-talent2','m-talent3'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('m-preascension').value = '';
     ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => document.getElementById(id).value = '');
+    ['m-ascension1-method','m-ascension2-method','m-ascension3-method'].forEach(id => document.getElementById(id).value = '');
     statFieldIds.forEach(id => document.getElementById(id).value = '');
     selectedSkillIds = new Set();
     pendingIconData = null;
@@ -1499,10 +1537,12 @@
     document.getElementById('m-talent3').value = talentIds[2] || '';
     renderAscensionSelects();
     document.getElementById('m-preascension').value = mon.preAscensionId || '';
-    const ascensionIds = mon.ascensionIds || [];
-    document.getElementById('m-ascension1').value = ascensionIds[0] || '';
-    document.getElementById('m-ascension2').value = ascensionIds[1] || '';
-    document.getElementById('m-ascension3').value = ascensionIds[2] || '';
+    const ascensions = mon.ascensions || [];
+    [1,2,3].forEach(n => {
+      const a = ascensions[n-1] || { id:'', method:'' };
+      document.getElementById(`m-ascension${n}`).value = a.id || '';
+      document.getElementById(`m-ascension${n}-method`).value = a.method || '';
+    });
     addMonBtn.textContent = 'Save changes';
     monFormTitle.textContent = `Editing ${mon.name}`;
     cancelEditBtn.style.display = 'inline-block';
@@ -1534,15 +1574,16 @@
       .map(id => document.getElementById(id).value)
       .filter(v => v);
     const preAscensionId = document.getElementById('m-preascension').value || '';
-    const ascensionIds = ['m-ascension1','m-ascension2','m-ascension3']
-      .map(id => document.getElementById(id).value)
-      .filter(v => v);
+    const ascensions = [1,2,3].map(n => ({
+      id: document.getElementById(`m-ascension${n}`).value || '',
+      method: document.getElementById(`m-ascension${n}-method`).value.trim()
+    })).filter(a => a.id);
 
     const monData = {
       name, icon: pendingIconData || null, stats,
       skillIds: Array.from(selectedSkillIds),
       order, statBudget, notes, type1, type2, talentIds,
-      preAscensionId, ascensionIds
+      preAscensionId, ascensions
     };
 
     try{
@@ -1721,13 +1762,25 @@
         : '';
 
       const preMon = mon.preAscensionId ? mons.find(m => m.id === mon.preAscensionId) : null;
-      const ascendMons = (mon.ascensionIds || []).map(id => mons.find(m => m.id === id)).filter(Boolean);
+      const preMethod = preMon ? (preMon.ascensions || []).find(a => a.id === mon.id)?.method : '';
+      const ascendEntries = (mon.ascensions || [])
+        .map(a => ({ mon: mons.find(m => m.id === a.id), method: a.method }))
+        .filter(e => e.mon);
+
       let evolutionHtml = '';
-      if(preMon || ascendMons.length){
-        const parts = [];
-        if(preMon) parts.push(`<div>Evolves from: <strong style="color:var(--text);">${escapeHtml(preMon.name)}</strong></div>`);
-        if(ascendMons.length) parts.push(`<div>Evolves into: <strong style="color:var(--text);">${ascendMons.map(m => escapeHtml(m.name)).join(', ')}</strong></div>`);
-        evolutionHtml = `<div style="margin-top:8px; font-size:0.78rem; color:var(--text-dim);">${parts.join('')}</div>`;
+      if(preMon || ascendEntries.length){
+        const preIconHtml = preMon
+          ? `<div class="evo-icon tt" data-tooltip="${escapeHtml(preMethod || 'Ascension method not set')}">${preMon.icon ? `<img src="${preMon.icon}" alt="${escapeHtml(preMon.name)}">` : '?'}</div>`
+          : '';
+        const ascendIconsHtml = ascendEntries.map(e =>
+          `<div class="evo-icon tt" data-tooltip="${escapeHtml(e.method || 'Ascension method not set')}">${e.mon.icon ? `<img src="${e.mon.icon}" alt="${escapeHtml(e.mon.name)}">` : '?'}</div>`
+        ).join('');
+        evolutionHtml = `
+          <div class="evo-row">
+            <div class="evo-side">${preIconHtml}</div>
+            <div class="evo-side">${ascendIconsHtml}</div>
+          </div>
+        `;
       }
 
       card.innerHTML = `
