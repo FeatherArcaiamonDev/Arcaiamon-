@@ -493,6 +493,38 @@
     background:rgba(201,168,106,0.06);
   }
 
+  /* Hover tooltip */
+  .tt{ position:relative; cursor:default; }
+  .tt::after{
+    content: attr(data-tooltip);
+    position:absolute;
+    left:50%;
+    bottom:calc(100% + 8px);
+    transform:translateX(-50%);
+    background:#0d0f16;
+    color:var(--text);
+    border:1px solid var(--accent);
+    padding:8px 12px;
+    border-radius:8px;
+    font-size:0.75rem;
+    font-weight:400;
+    white-space:normal;
+    width:max-content;
+    max-width:220px;
+    text-align:left;
+    line-height:1.35;
+    opacity:0;
+    visibility:hidden;
+    transition:opacity 0.12s ease;
+    z-index:50;
+    pointer-events:none;
+    box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  }
+  .tt:hover::after{
+    opacity:1;
+    visibility:visible;
+  }
+
   .hex-labels text{
     font-size:9px;
     fill:var(--text-dim);
@@ -1022,7 +1054,7 @@
       list.forEach(m => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${escapeHtml(m.name)}</td>
+          <td class="tt" data-tooltip="${escapeHtml(m.desc || 'No description')}">${escapeHtml(m.name)}</td>
           <td><span class="type-badge" style="background:${typeColorVar(m.type)}">${m.type}</span></td>
           <td><span class="cat-badge">${m.category}</span></td>
           <td class="num-cell">${m.power === '' ? '—' : m.power}</td>
@@ -1142,7 +1174,8 @@
     picker.innerHTML = '';
     skills.forEach(s => {
       const chip = document.createElement('label');
-      chip.className = 'skill-chip' + (selectedSkillIds.has(s.id) ? ' selected' : '');
+      chip.className = 'skill-chip tt' + (selectedSkillIds.has(s.id) ? ' selected' : '');
+      chip.dataset.tooltip = s.desc || 'No description';
       chip.innerHTML = `
         <input type="checkbox" ${selectedSkillIds.has(s.id) ? 'checked' : ''}>
         <span class="dot" style="background:${typeColorVar(s.type)}"></span>
@@ -1202,12 +1235,14 @@
     const countTag = document.getElementById('talent-count-tag');
     countTag.textContent = `${talents.length} talent${talents.length === 1 ? '' : 's'}`;
 
+    const sortedTalents = [...talents].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
     tbody.innerHTML = '';
-    if(talents.length === 0){
+    if(sortedTalents.length === 0){
       emptyState.style.display = 'block';
     } else {
       emptyState.style.display = 'none';
-      talents.forEach(t => {
+      sortedTalents.forEach(t => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${escapeHtml(t.name)}</td>
@@ -1239,13 +1274,14 @@
   }
 
   function renderTalentSelects(){
+    const sortedTalents = [...talents].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
     ['m-talent1','m-talent2','m-talent3'].forEach(id => {
       const sel = document.getElementById(id);
       const current = sel.value;
       sel.innerHTML = '';
       sel.appendChild(new Option('None', ''));
-      talents.forEach(t => sel.appendChild(new Option(t.name, t.id)));
-      if(talents.some(t => t.id === current)) sel.value = current;
+      sortedTalents.forEach(t => sel.appendChild(new Option(t.name, t.id)));
+      if(sortedTalents.some(t => t.id === current)) sel.value = current;
     });
   }
 
@@ -1633,12 +1669,12 @@
       const skillTags = (mon.skillIds || []).map(id => {
         const s = skills.find(sk => sk.id === id);
         if(!s) return '';
-        return `<span class="type-badge" style="background:${typeColorVar(s.type)}">${escapeHtml(s.name)}</span>`;
+        return `<span class="type-badge tt" data-tooltip="${escapeHtml(s.desc || 'No description')}" style="background:${typeColorVar(s.type)}">${escapeHtml(s.name)}</span>`;
       }).join('');
 
       const talentPills = (mon.talentIds || []).map(id => {
         const t = talents.find(tt => tt.id === id);
-        return t ? `<span class="talent-pill" title="${escapeHtml(t.desc||'')}">${escapeHtml(t.name)}</span>` : '';
+        return t ? `<span class="talent-pill tt" data-tooltip="${escapeHtml(t.desc || 'No description')}">${escapeHtml(t.name)}</span>` : '';
       }).join('');
 
       const statSum = statSumOf(mon);
