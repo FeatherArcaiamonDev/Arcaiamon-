@@ -605,6 +605,49 @@
   }
   .sort-select-wrap select{ width:auto; min-width:180px; }
   #mon-search{ max-width:280px; }
+
+  /* Order-aware ascension picker */
+  .op-wrap{ position:relative; }
+  .op-btn{
+    width:100%;
+    text-align:left;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:6px;
+    font-family:'Inter', sans-serif;
+    font-size:0.88rem;
+    cursor:pointer;
+  }
+  .op-btn:focus{ outline:none; border-color:var(--accent); }
+  .op-panel{
+    display:none;
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;
+    right:0;
+    max-height:220px;
+    overflow-y:auto;
+    background:var(--panel);
+    border:1px solid var(--accent);
+    border-radius:8px;
+    z-index:60;
+    box-shadow:0 6px 20px rgba(0,0,0,0.4);
+  }
+  .op-panel.open{ display:block; }
+  .op-item{
+    padding:8px 12px;
+    font-size:0.85rem;
+    cursor:pointer;
+    color:var(--text);
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .op-item:hover{ background:rgba(201,168,106,0.1); }
+  .op-item.current{ outline:1px dashed var(--accent); outline-offset:-2px; }
+  .op-item .op-order{ color:var(--text-dim); font-size:0.75rem; }
 </style>
 </head>
 <body>
@@ -830,20 +873,45 @@
 
       <div class="mon-form-grid" style="margin-top:10px;">
         <div class="field full">
-          <label for="m-preascension">Pre-Ascension (evolves from)</label>
-          <select id="m-preascension"></select>
+          <label for="m-preascension-btn">Pre-Ascension (evolves from)</label>
+          <div class="op-wrap">
+            <button type="button" class="op-btn" id="m-preascension-btn">None</button>
+            <div class="op-panel" id="m-preascension-panel"></div>
+            <input type="hidden" id="m-preascension" value="">
+          </div>
         </div>
       </div>
       <div class="mon-form-grid" style="margin-top:10px;">
-        <div class="field half"><label for="m-ascension1">Ascension 1</label><select id="m-ascension1"></select></div>
+        <div class="field half">
+          <label for="m-ascension1-btn">Ascension 1</label>
+          <div class="op-wrap">
+            <button type="button" class="op-btn" id="m-ascension1-btn">None</button>
+            <div class="op-panel" id="m-ascension1-panel"></div>
+            <input type="hidden" id="m-ascension1" value="">
+          </div>
+        </div>
         <div class="field half"><label for="m-ascension1-method">How it ascends</label><input id="m-ascension1-method" type="text" placeholder="e.g. Level 30 near water"></div>
       </div>
       <div class="mon-form-grid" style="margin-top:10px;">
-        <div class="field half"><label for="m-ascension2">Ascension 2</label><select id="m-ascension2"></select></div>
+        <div class="field half">
+          <label for="m-ascension2-btn">Ascension 2</label>
+          <div class="op-wrap">
+            <button type="button" class="op-btn" id="m-ascension2-btn">None</button>
+            <div class="op-panel" id="m-ascension2-panel"></div>
+            <input type="hidden" id="m-ascension2" value="">
+          </div>
+        </div>
         <div class="field half"><label for="m-ascension2-method">How it ascends</label><input id="m-ascension2-method" type="text" placeholder="e.g. Level 30 near water"></div>
       </div>
       <div class="mon-form-grid" style="margin-top:10px;">
-        <div class="field half"><label for="m-ascension3">Ascension 3</label><select id="m-ascension3"></select></div>
+        <div class="field half">
+          <label for="m-ascension3-btn">Ascension 3</label>
+          <div class="op-wrap">
+            <button type="button" class="op-btn" id="m-ascension3-btn">None</button>
+            <div class="op-panel" id="m-ascension3-panel"></div>
+            <input type="hidden" id="m-ascension3" value="">
+          </div>
+        </div>
         <div class="field half"><label for="m-ascension3-method">How it ascends</label><input id="m-ascension3-method" type="text" placeholder="e.g. Level 30 near water"></div>
       </div>
 
@@ -1325,24 +1393,91 @@
     });
   }
 
+  const OP_FIELDS = ['m-preascension', 'm-ascension1', 'm-ascension2', 'm-ascension3'];
+
+  function opCurrentAnchorOrder(){
+    const val = document.getElementById('m-order').value;
+    if(val !== '') return Number(val);
+    if(mons.length) return Math.max(...mons.map(m => m.order || 0)) + 1;
+    return 1;
+  }
+
+  function closeAllOpPanels(){
+    OP_FIELDS.forEach(id => document.getElementById(`${id}-panel`).classList.remove('open'));
+  }
+
+  function buildOpPicker(fieldId, excludeId, sortedMons){
+    const btn = document.getElementById(`${fieldId}-btn`);
+    const panel = document.getElementById(`${fieldId}-panel`);
+    const hidden = document.getElementById(fieldId);
+
+    function setValue(id, label){
+      hidden.value = id;
+      btn.textContent = label;
+    }
+
+    function renderPanelItems(){
+      panel.innerHTML = '';
+      const noneItem = document.createElement('div');
+      noneItem.className = 'op-item';
+      noneItem.innerHTML = `<span>None</span>`;
+      noneItem.addEventListener('click', () => { setValue('', 'None'); closeAllOpPanels(); });
+      panel.appendChild(noneItem);
+
+      sortedMons.filter(m => m.id !== excludeId).forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'op-item';
+        item.dataset.order = m.order ?? 9999;
+        item.innerHTML = `<span>${escapeHtml(m.name)}</span><span class="op-order">#${m.order ?? '—'}</span>`;
+        item.addEventListener('click', () => { setValue(m.id, m.name); closeAllOpPanels(); });
+        panel.appendChild(item);
+      });
+    }
+
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = panel.classList.contains('open');
+      closeAllOpPanels();
+      if(isOpen) return;
+      renderPanelItems();
+      panel.classList.add('open');
+
+      const anchor = opCurrentAnchorOrder();
+      let closestItem = null;
+      let closestDiff = Infinity;
+      panel.querySelectorAll('.op-item[data-order]').forEach(item => {
+        item.classList.remove('current');
+        const diff = Math.abs(Number(item.dataset.order) - anchor);
+        if(diff < closestDiff){ closestDiff = diff; closestItem = item; }
+      });
+      if(closestItem){
+        closestItem.classList.add('current');
+        closestItem.scrollIntoView({ block:'center' });
+      }
+    };
+
+    return { setValue };
+  }
+
+  const opPickers = {};
+
   function renderAscensionSelects(){
     const sortedMons = [...mons].sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
     const excludeId = editingMonId;
-    const pre = document.getElementById('m-preascension');
-    const preCurrent = pre.value;
-    pre.innerHTML = '';
-    pre.appendChild(new Option('None', ''));
-    sortedMons.filter(m => m.id !== excludeId).forEach(m => pre.appendChild(new Option(m.name, m.id)));
-    if(sortedMons.some(m => m.id === preCurrent)) pre.value = preCurrent;
-
-    ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => {
-      const sel = document.getElementById(id);
-      const current = sel.value;
-      sel.innerHTML = '';
-      sel.appendChild(new Option('None', ''));
-      sortedMons.filter(m => m.id !== excludeId).forEach(m => sel.appendChild(new Option(m.name, m.id)));
-      if(sortedMons.some(m => m.id === current)) sel.value = current;
+    OP_FIELDS.forEach(fieldId => {
+      opPickers[fieldId] = buildOpPicker(fieldId, excludeId, sortedMons);
     });
+  }
+
+  document.addEventListener('click', () => closeAllOpPanels());
+
+  function opSetById(fieldId, id){
+    const hidden = document.getElementById(fieldId);
+    const btn = document.getElementById(`${fieldId}-btn`);
+    if(!id){ hidden.value = ''; btn.textContent = 'None'; return; }
+    const mon = mons.find(m => m.id === id);
+    hidden.value = id;
+    btn.textContent = mon ? mon.name : 'None';
   }
 
   /* ============ ICON CROPPER ============ */
@@ -1497,8 +1632,8 @@
     document.getElementById('m-type1').selectedIndex = 0;
     document.getElementById('m-type2').value = '';
     ['m-talent1','m-talent2','m-talent3'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('m-preascension').value = '';
-    ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => document.getElementById(id).value = '');
+    opSetById('m-preascension', '');
+    ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => opSetById(id, ''));
     ['m-ascension1-method','m-ascension2-method','m-ascension3-method'].forEach(id => document.getElementById(id).value = '');
     statFieldIds.forEach(id => document.getElementById(id).value = '');
     selectedSkillIds = new Set();
@@ -1536,11 +1671,11 @@
     document.getElementById('m-talent2').value = talentIds[1] || '';
     document.getElementById('m-talent3').value = talentIds[2] || '';
     renderAscensionSelects();
-    document.getElementById('m-preascension').value = mon.preAscensionId || '';
+    opSetById('m-preascension', mon.preAscensionId || '');
     const ascensions = mon.ascensions || [];
     [1,2,3].forEach(n => {
       const a = ascensions[n-1] || { id:'', method:'' };
-      document.getElementById(`m-ascension${n}`).value = a.id || '';
+      opSetById(`m-ascension${n}`, a.id || '');
       document.getElementById(`m-ascension${n}-method`).value = a.method || '';
     });
     addMonBtn.textContent = 'Save changes';
