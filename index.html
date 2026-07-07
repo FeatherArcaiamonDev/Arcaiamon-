@@ -523,14 +523,21 @@
     font-size:0.9rem;
   }
 
-  /* Hover tooltip */
-  .tt{ position:relative; cursor:default; }
-  .tt::after{
-    content: attr(data-tooltip);
-    position:absolute;
-    left:50%;
-    bottom:calc(100% + 8px);
-    transform:translateX(-50%);
+  .mon-notes-box{
+    flex:1;
+    min-width:0;
+    font-size:0.8rem;
+    color:var(--text-dim);
+    white-space:pre-wrap;
+    padding-top:4px;
+    max-height:210px;
+    overflow-y:auto;
+  }
+
+  /* Hover tooltip (positioned by JS to stay on-screen) */
+  .tt{ cursor:default; }
+  #global-tooltip{
+    position:fixed;
     background:#0d0f16;
     color:var(--text);
     border:1px solid var(--accent);
@@ -538,21 +545,12 @@
     border-radius:8px;
     font-size:0.75rem;
     font-weight:400;
-    white-space:normal;
-    width:max-content;
-    max-width:220px;
-    text-align:left;
     line-height:1.35;
-    opacity:0;
-    visibility:hidden;
-    transition:opacity 0.12s ease;
-    z-index:50;
+    max-width:240px;
+    z-index:200;
     pointer-events:none;
     box-shadow:0 4px 16px rgba(0,0,0,0.4);
-  }
-  .tt:hover::after{
-    opacity:1;
-    visibility:visible;
+    display:none;
   }
 
   .hex-labels text{
@@ -1015,6 +1013,33 @@
     syncTag.textContent = text;
     syncTag.classList.toggle('saving', !!saving);
   }
+
+  /* ============ GLOBAL TOOLTIP (viewport-clamped) ============ */
+  const globalTooltip = document.createElement('div');
+  globalTooltip.id = 'global-tooltip';
+  document.body.appendChild(globalTooltip);
+
+  document.addEventListener('mouseover', e => {
+    const target = e.target.closest('.tt');
+    if(!target) return;
+    const text = target.dataset.tooltip;
+    if(!text) return;
+    globalTooltip.textContent = text;
+    globalTooltip.style.display = 'block';
+    const rect = target.getBoundingClientRect();
+    const ttRect = globalTooltip.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - ttRect.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - ttRect.width - 8));
+    let top = rect.top - ttRect.height - 8;
+    if(top < 8) top = rect.bottom + 8;
+    globalTooltip.style.left = `${left}px`;
+    globalTooltip.style.top = `${top}px`;
+  });
+  document.addEventListener('mouseout', e => {
+    const target = e.target.closest('.tt');
+    if(!target) return;
+    globalTooltip.style.display = 'none';
+  });
 
   /* ============ TYPE SELECTS SETUP ============ */
   const typeSelect = document.getElementById('f-type');
@@ -1892,9 +1917,6 @@
       }).join('');
 
       const statSum = statSumOf(mon);
-      const notesHtml = mon.notes
-        ? `<div style="margin-top:10px; font-size:0.8rem; color:var(--text-dim); border-top:1px solid var(--line); padding-top:10px; white-space:pre-wrap;">${escapeHtml(mon.notes)}</div>`
-        : '';
 
       const preMon = mon.preAscensionId ? mons.find(m => m.id === mon.preAscensionId) : null;
       const preMethod = preMon ? (preMon.ascensions || []).find(a => a.id === mon.id)?.method : '';
@@ -1905,11 +1927,11 @@
       let evolutionHtml = '';
       if(preMon || ascendEntries.length){
         const preIconHtml = preMon
-          ? `<div class="evo-icon tt" data-tooltip="${escapeHtml(preMethod || 'Ascension method not set')}">${preMon.icon ? `<img src="${preMon.icon}" alt="${escapeHtml(preMon.name)}">` : '?'}</div>`
+          ? `<span class="evo-arrow">◀</span><div class="evo-icon tt" data-tooltip="${escapeHtml(preMethod || 'Ascension method not set')}">${preMon.icon ? `<img src="${preMon.icon}" alt="${escapeHtml(preMon.name)}">` : '?'}</div>`
           : '';
         const ascendIconsHtml = ascendEntries.map(e =>
           `<div class="evo-icon tt" data-tooltip="${escapeHtml(e.method || 'Ascension method not set')}">${e.mon.icon ? `<img src="${e.mon.icon}" alt="${escapeHtml(e.mon.name)}">` : '?'}</div>`
-        ).join('');
+        ).join('') + (ascendEntries.length ? `<span class="evo-arrow">▶</span>` : '');
         evolutionHtml = `
           <div class="evo-row">
             <div class="evo-side">${preIconHtml}</div>
@@ -1931,12 +1953,14 @@
           <h3>${escapeHtml(mon.name)}</h3>
         </div>
         <div class="mon-types">${typeBadges}</div>
-        ${hexSVG(mon.stats || {})}
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0;">${hexSVG(mon.stats || {})}</div>
+          <div class="mon-notes-box">${mon.notes ? escapeHtml(mon.notes) : '<span style="color:var(--text-dim);">No notes</span>'}</div>
+        </div>
         <div style="font-size:0.78rem; color:var(--text-dim); margin-top:4px;">Stat total: ${statSum}</div>
         <div class="mon-talents">${talentPills}</div>
         <div class="mon-skills">${skillTags || '<span style="color:var(--text-dim); font-size:0.78rem;">No skills assigned</span>'}</div>
         ${evolutionHtml}
-        ${notesHtml}
       `;
       grid.appendChild(card);
     });
