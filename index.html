@@ -10,7 +10,7 @@
   :root{
     --basic:#a8a878; --fire:#e8622c; --water:#3b8fd9; --volt:#f2c94c;
     --flora:#4caf50; --frost:#7fd8e8; --mystic:#9b5de5; --earth:#a5713c;
-    --spirit:#6c6ca0; --holy:#f0d878; --iron:#8a8f98; --insect:#8bb03a; --wind:#7fd4b8;
+    --spirit:#6c6ca0; --holy:#f0d878; --iron:#8a8f98; --insect:#8bb03a; --wind:#7fd4b8; --poison:#a35bbf;
 
     --bg:#12141c;
     --panel:#1a1d29;
@@ -999,7 +999,7 @@
   const auth = getAuth(fbApp);
   const db = getFirestore(fbApp);
 
-  const TYPES = ["Basic","Fire","Water","Volt","Flora","Frost","Mystic","Earth","Spirit","Holy","Iron","Insect","Wind"];
+  const TYPES = ["Basic","Fire","Water","Volt","Flora","Frost","Mystic","Earth","Spirit","Holy","Iron","Insect","Wind","Poison"];
 
   function typeColorVar(type){
     return `var(--${type.toLowerCase()})`;
