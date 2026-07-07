@@ -599,7 +599,7 @@
 <div class="tabs">
   <button class="tab-btn active" id="tab-btn-skills">Skills</button>
   <button class="tab-btn" id="tab-btn-talents">Talents</button>
-  <button class="tab-btn" id="tab-btn-mons">Mons</button>
+  <button class="tab-btn" id="tab-btn-mons">Arcaiamon</button>
 </div>
 
 <div class="wrap">
@@ -709,7 +709,7 @@
   <!-- MONS TAB -->
   <div id="panel-mons" style="display:none;">
     <div class="panel">
-      <h2 id="mon-form-title">Add a Mon</h2>
+      <h2 id="mon-form-title">Add an Arcaiamon</h2>
 
       <div class="icon-row">
         <div class="icon-preview" id="icon-preview"><span class="placeholder">No icon</span></div>
@@ -793,18 +793,21 @@
       </div>
 
       <div class="mon-form-grid" style="margin-top:10px;">
-        <div class="field half">
-          <label for="m-talent1">Talent 1</label>
-          <select id="m-talent1"></select>
+        <div class="field half"><label for="m-talent1">Talent 1</label><select id="m-talent1"></select></div>
+        <div class="field half"><label for="m-talent2">Talent 2</label><select id="m-talent2"></select></div>
+        <div class="field half"><label for="m-talent3">Talent 3</label><select id="m-talent3"></select></div>
+      </div>
+
+      <div class="mon-form-grid" style="margin-top:10px;">
+        <div class="field full">
+          <label for="m-preascension">Pre-Ascension (evolves from)</label>
+          <select id="m-preascension"></select>
         </div>
-        <div class="field half">
-          <label for="m-talent2">Talent 2</label>
-          <select id="m-talent2"></select>
-        </div>
-        <div class="field half">
-          <label for="m-talent3">Talent 3</label>
-          <select id="m-talent3"></select>
-        </div>
+      </div>
+      <div class="mon-form-grid" style="margin-top:10px;">
+        <div class="field half"><label for="m-ascension1">Ascension 1</label><select id="m-ascension1"></select></div>
+        <div class="field half"><label for="m-ascension2">Ascension 2</label><select id="m-ascension2"></select></div>
+        <div class="field half"><label for="m-ascension3">Ascension 3</label><select id="m-ascension3"></select></div>
       </div>
 
       <div class="field full" style="margin-top:16px;">
@@ -825,13 +828,13 @@
 
     <div class="panel">
       <h2 style="display:flex; justify-content:space-between; align-items:center;">
-        <span>Mon list</span>
-        <span class="count-tag" id="mon-count-tag">0 mons</span>
+        <span>Arcaiamon list</span>
+        <span class="count-tag" id="mon-count-tag">0 Arcaiamon</span>
       </h2>
 
       <div class="filter-bar">
         <div class="filter-row">
-          <input type="text" id="mon-search" placeholder="Search Mons by name…">
+          <input type="text" id="mon-search" placeholder="Search Arcaiamon by name…">
           <div class="sort-select-wrap">
             <label for="mon-sort">Sort:</label>
             <select id="mon-sort">
@@ -859,7 +862,7 @@
       </div>
 
       <div class="mon-grid" id="mon-grid"></div>
-      <div class="empty-state" id="mon-empty-state">No Mons yet. Add your first one above.</div>
+      <div class="empty-state" id="mon-empty-state">No Arcaiamon yet. Add your first one above.</div>
     </div>
   </div>
 
@@ -946,9 +949,9 @@
     panelSkills.style.display = which === 'skills' ? 'block' : 'none';
     panelTalents.style.display = which === 'talents' ? 'block' : 'none';
     panelMons.style.display = which === 'mons' ? 'block' : 'none';
-    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Mon roster & stats ' };
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ' };
     headerSub.childNodes[0].textContent = subs[which];
-    if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); }
+    if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
   }
   tabBtnSkills.addEventListener('click', () => showTab('skills'));
   tabBtnTalents.addEventListener('click', () => showTab('talents'));
@@ -1285,6 +1288,26 @@
     });
   }
 
+  function renderAscensionSelects(){
+    const sortedMons = [...mons].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    const excludeId = editingMonId;
+    const pre = document.getElementById('m-preascension');
+    const preCurrent = pre.value;
+    pre.innerHTML = '';
+    pre.appendChild(new Option('None', ''));
+    sortedMons.filter(m => m.id !== excludeId).forEach(m => pre.appendChild(new Option(m.name, m.id)));
+    if(sortedMons.some(m => m.id === preCurrent)) pre.value = preCurrent;
+
+    ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => {
+      const sel = document.getElementById(id);
+      const current = sel.value;
+      sel.innerHTML = '';
+      sel.appendChild(new Option('None', ''));
+      sortedMons.filter(m => m.id !== excludeId).forEach(m => sel.appendChild(new Option(m.name, m.id)));
+      if(sortedMons.some(m => m.id === current)) sel.value = current;
+    });
+  }
+
   /* ============ ICON CROPPER ============ */
   const sheetUpload = document.getElementById('sheet-upload');
   const cropperWrap = document.getElementById('cropper-wrap');
@@ -1437,15 +1460,18 @@
     document.getElementById('m-type1').selectedIndex = 0;
     document.getElementById('m-type2').value = '';
     ['m-talent1','m-talent2','m-talent3'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('m-preascension').value = '';
+    ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => document.getElementById(id).value = '');
     statFieldIds.forEach(id => document.getElementById(id).value = '');
     selectedSkillIds = new Set();
     pendingIconData = null;
     iconPreview.innerHTML = '<span class="placeholder">No icon</span>';
     editingMonId = null;
-    addMonBtn.textContent = 'Add Mon';
-    monFormTitle.textContent = 'Add a Mon';
+    addMonBtn.textContent = 'Add Arcaiamon';
+    monFormTitle.textContent = 'Add an Arcaiamon';
     cancelEditBtn.style.display = 'none';
     renderSkillPicker();
+    renderAscensionSelects();
     updateStatTotalDisplay();
   }
 
@@ -1471,6 +1497,12 @@
     document.getElementById('m-talent1').value = talentIds[0] || '';
     document.getElementById('m-talent2').value = talentIds[1] || '';
     document.getElementById('m-talent3').value = talentIds[2] || '';
+    renderAscensionSelects();
+    document.getElementById('m-preascension').value = mon.preAscensionId || '';
+    const ascensionIds = mon.ascensionIds || [];
+    document.getElementById('m-ascension1').value = ascensionIds[0] || '';
+    document.getElementById('m-ascension2').value = ascensionIds[1] || '';
+    document.getElementById('m-ascension3').value = ascensionIds[2] || '';
     addMonBtn.textContent = 'Save changes';
     monFormTitle.textContent = `Editing ${mon.name}`;
     cancelEditBtn.style.display = 'inline-block';
@@ -1501,11 +1533,16 @@
     const talentIds = ['m-talent1','m-talent2','m-talent3']
       .map(id => document.getElementById(id).value)
       .filter(v => v);
+    const preAscensionId = document.getElementById('m-preascension').value || '';
+    const ascensionIds = ['m-ascension1','m-ascension2','m-ascension3']
+      .map(id => document.getElementById(id).value)
+      .filter(v => v);
 
     const monData = {
       name, icon: pendingIconData || null, stats,
       skillIds: Array.from(selectedSkillIds),
-      order, statBudget, notes, type1, type2, talentIds
+      order, statBudget, notes, type1, type2, talentIds,
+      preAscensionId, ascensionIds
     };
 
     try{
@@ -1613,6 +1650,7 @@
   }
 
   function renderMons(){
+    renderAscensionSelects();
     const grid = document.getElementById('mon-grid');
     const emptyState = document.getElementById('mon-empty-state');
     const countTag = document.getElementById('mon-count-tag');
@@ -1682,6 +1720,16 @@
         ? `<div style="margin-top:10px; font-size:0.8rem; color:var(--text-dim); border-top:1px solid var(--line); padding-top:10px; white-space:pre-wrap;">${escapeHtml(mon.notes)}</div>`
         : '';
 
+      const preMon = mon.preAscensionId ? mons.find(m => m.id === mon.preAscensionId) : null;
+      const ascendMons = (mon.ascensionIds || []).map(id => mons.find(m => m.id === id)).filter(Boolean);
+      let evolutionHtml = '';
+      if(preMon || ascendMons.length){
+        const parts = [];
+        if(preMon) parts.push(`<div>Evolves from: <strong style="color:var(--text);">${escapeHtml(preMon.name)}</strong></div>`);
+        if(ascendMons.length) parts.push(`<div>Evolves into: <strong style="color:var(--text);">${ascendMons.map(m => escapeHtml(m.name)).join(', ')}</strong></div>`);
+        evolutionHtml = `<div style="margin-top:8px; font-size:0.78rem; color:var(--text-dim);">${parts.join('')}</div>`;
+      }
+
       card.innerHTML = `
         <div class="mon-card-actions">
           <button class="up-btn" data-idx="${idxInOrder}" title="Move up" ${idxInOrder <= 0 ? 'disabled' : ''}>▲</button>
@@ -1699,6 +1747,7 @@
         <div style="font-size:0.78rem; color:var(--text-dim); margin-top:4px;">Stat total: ${statSum}</div>
         <div class="mon-talents">${talentPills}</div>
         <div class="mon-skills">${skillTags || '<span style="color:var(--text-dim); font-size:0.78rem;">No skills assigned</span>'}</div>
+        ${evolutionHtml}
         ${notesHtml}
       `;
       grid.appendChild(card);
