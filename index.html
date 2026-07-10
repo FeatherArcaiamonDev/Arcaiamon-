@@ -713,6 +713,7 @@
         <button class="add-btn" id="add-btn" title="Add skill">+</button>
       </div>
       <button class="wide-btn secondary" id="cancel-skill-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
+      <button class="wide-btn secondary" id="import-skills-btn" style="margin-top:12px;">Import your 87-move starter list</button>
     </div>
 
     <div class="panel">
@@ -1230,6 +1231,134 @@
       });
     });
   }
+
+  const STARTER_SKILLS = [
+    ["Slam","Basic","Physical",45,100,""],
+    ["Trip","Basic","Status","","100","Lowers opponent's P-DEF by 1 tier"],
+    ["Distract","Basic","Status","","100","Lowers opponent's P-ATK by 1 tier"],
+    ["Peck","Basic","Physical",30,100,"30% chance to lower opponent's M-DEF by 1 tier"],
+    ["Furious Slam","Basic","Physical",80,100,"10% chance to raise user's P-ATK by 1 tier and 10% chance to lower opponent's P-DEF by 1 tier"],
+    ["Gamblers Ray","Basic","Magic",80,100,"30% chance to inflict a random status condition on opponent"],
+    ["Check","Basic","Physical",65,90,"30% chance to deal 50% bonus damage"],
+    ["Concuss","Basic","Magic",60,100,"10% chance to lower opponent's M-DEF by 1 tier"],
+
+    ["Dowse","Water","Magic",40,100,"Inflicts Soaked on opponent"],
+    ["Downpour","Water","Status","","100","Triggers Rain field condition"],
+    ["Crashing Wave","Water","Magic",80,100,"30% chance to inflict Soaked on opponent"],
+    ["Hydro Jet","Water","Physical",80,90,"Ignores opponent's P-DEF tier increases"],
+    ["Drench","Water","Magic",55,85,"Lowers opponent's Agility by 1 tier"],
+    ["Watery Crash","Water","Physical",65,95,""],
+
+    ["Singe","Fire","Physical",40,100,""],
+    ["Fiery Impact","Fire","Physical",90,100,"10% chance to inflict Singed"],
+    ["Sweltering Sun","Fire","Status","","100","Triggers Solar field condition"],
+    ["Burn","Fire","Status","","100","Inflicts Singed on opponent"],
+    ["Cauterize","Fire","Physical",20,100,"Clears opponent's Poison condition and deals damage equal to 1/2 their max HP"],
+    ["Crash and Burn","Fire","Physical",90,100,"10% chance to inflict Singed"],
+    ["Molten Breath","Fire","Magic",75,100,"30% chance to raise user's P-DEF by 1 tier"],
+    ["Fire Lick","Fire","Physical",65,100,""],
+    ["Burning","Fire","Magic",100,50,"Deals 50% more damage if user has a tier increase in P-DEF"],
+
+    ["Zap","Volt","Magic",40,100,""],
+    ["Electrify","Volt","Magic",90,100,"10% chance to inflict Stunned"],
+    ["Static Shock","Volt","Physical",10,100,"Inflicts Stunned on opponent"],
+    ["Blink Barrage","Volt","Physical",20,100,"Hits 2-5 times (Multi-hit)"],
+    ["Lightning Bolt","Volt","Magic",65,100,"30% chance to inflict Stunned. Strikes twice under Rain field condition"],
+    ["Flash and Zap","Volt","Physical",75,90,"Increased priority"],
+    ["Volt Strike","Volt","Physical",65,100,""],
+    ["Crackle","Volt","Magic",20,100,"Raises user's M-ATK by 1 tier. If user already has +1 or more M-ATK tier increase, deals 55 power instead and no stat increase"],
+    ["Superconduct","Volt","Physical",70,100,"Deals double damage to Frost-type Arcaiamon and Arcaiamon afflicted with Chilled status"],
+
+    ["Sleep Spore","Flora","Status","","70","Puts opponent to sleep (Spore)"],
+    ["Poison Spore","Flora","Status","","70","Inflicts Poisoned on opponent (Spore)"],
+    ["Stun Spore","Flora","Status","","70","Inflicts Stunned on opponent (Spore)"],
+    ["Absorbing Ray","Flora","Magic",75,100,"Restore HP equal to 1/3 of damage dealt (doubled to 2/3 under Solar condition)"],
+    ["Seed Whip","Flora","Physical",70,100,"Target takes 10% of max HP at end of each turn for 3 turns (20% under Solar condition) (Seed)"],
+    ["Energy Leech","Flora","Magic",50,100,"Restore HP equal to 1/3 of damage dealt (2/3 if target is Water-type)"],
+    ["Vine Lash","Flora","Physical",70,80,""],
+    ["Grass Cut","Flora","Physical",40,100,""],
+    ["Drain","Flora","Magic",35,100,"Restore HP equal to 1/3 of damage dealt"],
+
+    ["Sub-Zero Touch","Frost","Physical",50,100,"Inflicts Chilled on opponent"],
+    ["Blizzard","Frost","Status","","100","Triggers Snow field condition"],
+    ["Frostbite","Frost","Magic",50,100,"50% chance to lower opponent's M-DEF by 1 tier"],
+    ["Ice Lance","Frost","Physical",110,100,"Does half damage if user is below half HP"],
+    ["Winter Ray","Frost","Magic",80,100,"15% chance to inflict Chilled"],
+
+    ["Toxin","Poison","Status","","100","Inflicts Poisoned on opponent"],
+    ["Festering Scratch","Poison","Physical",80,100,"30% chance to inflict Poisoned"],
+    ["Oozing Slash","Poison","Physical",80,100,"30% chance to inflict Poisoned"],
+    ["Pestilence","Poison","Magic",50,100,"30% chance to inflict Poisoned, double damage if target is already Poisoned"],
+
+    ["Puff","Wind","Magic",40,100,""],
+    ["Last Breath","Wind","Magic",90,100,"If target is knocked out, next Mon to enter inherits their status condition"],
+    ["Cyclonic Slash","Wind","Physical",70,95,"Double damage if you go first"],
+    ["Passing Breeze","Wind","Physical",45,100,"Transfers user's status condition to the opponent"],
+    ["Emboldened Gust","Wind","Magic",20,100,"Increased priority, transfers all user's negative tier changes to the opponent"],
+    ["Whisk Away","Wind","Magic",65,100,"Forces opponent to swap out after being hit, lowered priority"],
+
+    ["Sparkle","Mystic","Magic",40,100,""],
+    ["Energy Beam","Mystic","Magic",90,100,"10% chance to inflict Hexed"],
+    ["Blood Moon","Mystic","Status","","100","Triggers Full Moon field condition"],
+    ["Curse","Mystic","Status","","100","Inflicts Hexed on opponent"],
+    ["Arcane Bolt","Mystic","Magic",100,100,"10% chance to inflict Hexed"],
+    ["Aiather Drain","Mystic","Physical",75,100,"Restore HP equal to 1/3 of damage dealt"],
+    ["Fairy Flame","Mystic","Magic",65,100,"20% chance to inflict Singed"],
+    ["Moonlight Ray","Mystic","Magic",70,100,"Inflicts Hexed if Full Moon field condition is active"],
+
+    ["Swarm","Insect","Physical",30,100,"50% chance to inflict Infested"],
+    ["Blood Sucker","Insect","Physical",50,100,"Restore HP equal to 1/2 of damage dealt"],
+    ["Vice","Insect","Physical",80,100,"Target cannot switch out"],
+    ["Viscous Swarm","Insect","Magic",90,100,"10% chance to inflict Infested"],
+
+    ["Reckless Abandon","Earth","Physical",120,80,"30% chance to increase user's P-ATK by 1 tier"],
+    ["Rugged Pass","Earth","Status","","100","Triggers Rugged field condition"],
+    ["Stone Breaker","Earth","Physical",120,100,"User takes 10% of their max HP as recoil damage"],
+    ["Ancient Shards","Earth","Magic",60,100,"Double damage if you go last"],
+
+    ["Haunt","Spirit","Physical",70,100,"Sleeping opponents take double damage"],
+    ["Whisper","Spirit","Status","","80","Puts opponent to sleep"],
+    ["Life Drain","Spirit","Magic",70,100,"Restore HP equal to 25% of damage dealt"],
+    ["Soul Slash","Spirit","Physical",85,100,"Deals damage based on opponent's M-DEF instead of P-DEF"],
+    ["Fade Slash","Spirit","Physical",65,100,"User swaps out after hitting the opponent"],
+
+    ["Pray","Holy","Status","","100","Raises user's M-ATK, M-DEF, and Agility by 1 tier; lowers user's P-DEF and P-ATK by 1 tier"],
+    ["Harm","Holy","Magic",90,100,""],
+    ["Cleanse","Holy","Status","","100","Clears all status conditions from your party"],
+    ["Purify","Holy","Physical",70,100,"If target has a status condition, clears it and deals double damage"],
+    ["Revitalize","Holy","Physical",100,100,"30% chance to remove user's own status condition"],
+    ["Missionary","Holy","Status","","100","Raises user's M-ATK and M-DEF by 1 tier. If on a field condition: raises M-ATK by 2 tiers, M-DEF by 2 tiers, and Agility by 1 tier"],
+
+    ["Magnetic Field","Iron","Status","","100","Triggers Precision field condition"],
+    ["Over Extend","Iron","Physical",155,60,"If you miss, skip your next turn"],
+    ["Steely Screech","Iron","Magic",75,90,"50% chance to lower opponent's M-DEF by 1 tier"],
+    ["Shackles","Iron","Status","","100","Lowers opponent's Agility by 1 tier and prevents them from swapping out"]
+  ];
+
+  document.getElementById('import-skills-btn').addEventListener('click', () => {
+    const existingNames = new Set(skills.map(s => s.name.toLowerCase()));
+    let added = 0;
+    STARTER_SKILLS.forEach(([name, type, category, power, accuracy, desc]) => {
+      if(existingNames.has(name.toLowerCase())) return;
+      skills.push({
+        id: Date.now().toString() + Math.random().toString(36).slice(2,8),
+        name, type, category,
+        power: power === '' ? '' : Number(power),
+        accuracy: accuracy === '' ? '' : Number(accuracy),
+        desc
+      });
+      existingNames.add(name.toLowerCase());
+      added++;
+    });
+    if(added === 0){
+      alert('All of these are already in your skill list.');
+      return;
+    }
+    renderSkills();
+    renderSkillPicker();
+    saveShared();
+    alert(`Imported ${added} skill${added === 1 ? '' : 's'}.`);
+  });
 
   const addSkillBtn = document.getElementById('add-btn');
   const cancelSkillEditBtn = document.getElementById('cancel-skill-edit-btn');
