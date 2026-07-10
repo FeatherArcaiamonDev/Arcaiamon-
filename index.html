@@ -918,18 +918,6 @@
 
       <div class="field full" style="margin-top:16px;">
         <label>Movepool (select from skill list)</label>
-        <div class="sort-select-wrap" style="margin-bottom:8px;">
-          <label for="picker-sort">Sort:</label>
-          <select id="picker-sort">
-            <option value="listorder">List order</option>
-            <option value="alpha">Alphabetical</option>
-            <option value="type">Type</option>
-            <option value="power">Power (high–low)</option>
-            <option value="patk">P-ATK first</option>
-            <option value="matk">M-ATK first</option>
-            <option value="status">Status first</option>
-          </select>
-        </div>
         <div class="skill-picker" id="skill-picker"></div>
       </div>
 
@@ -1371,31 +1359,6 @@
     });
   });
 
-  let pickerSortMode = 'listorder';
-
-  function sortSkillsForPicker(list){
-    const sorted = [...list];
-    if(pickerSortMode === 'alpha'){
-      sorted.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
-    } else if(pickerSortMode === 'type'){
-      sorted.sort((a,b) => (a.type || '').localeCompare(b.type || '') || (a.name || '').localeCompare(b.name || ''));
-    } else if(pickerSortMode === 'power'){
-      sorted.sort((a,b) => (Number(b.power) || 0) - (Number(a.power) || 0));
-    } else if(pickerSortMode === 'patk'){
-      sorted.sort((a,b) => (a.category === 'Physical' ? 0 : 1) - (b.category === 'Physical' ? 0 : 1));
-    } else if(pickerSortMode === 'matk'){
-      sorted.sort((a,b) => (a.category === 'Magic' ? 0 : 1) - (b.category === 'Magic' ? 0 : 1));
-    } else if(pickerSortMode === 'status'){
-      sorted.sort((a,b) => (a.category === 'Status' ? 0 : 1) - (b.category === 'Status' ? 0 : 1));
-    }
-    return sorted;
-  }
-
-  document.getElementById('picker-sort').addEventListener('change', e => {
-    pickerSortMode = e.target.value;
-    renderSkillPicker();
-  });
-
   function renderSkillPicker(){
     const picker = document.getElementById('skill-picker');
     if(skills.length === 0){
@@ -1403,7 +1366,7 @@
       return;
     }
     picker.innerHTML = '';
-    sortSkillsForPicker(skills).forEach(s => {
+    skills.forEach(s => {
       const chip = document.createElement('label');
       chip.className = 'skill-chip tt' + (selectedSkillIds.has(s.id) ? ' selected' : '');
       chip.dataset.tooltip = s.desc || 'No description';
