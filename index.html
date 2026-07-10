@@ -670,9 +670,10 @@
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" id="tab-btn-skills">Skills</button>
-  <button class="tab-btn" id="tab-btn-talents">Talents</button>
   <button class="tab-btn" id="tab-btn-mons">Arcaiamon</button>
+  <button class="tab-btn" id="tab-btn-talents">Talents</button>
+  <button class="tab-btn active" id="tab-btn-skills">Skills</button>
+  <button class="tab-btn" id="tab-btn-items">Items</button>
 </div>
 
 <div class="wrap">
@@ -713,7 +714,6 @@
         <button class="add-btn" id="add-btn" title="Add skill">+</button>
       </div>
       <button class="wide-btn secondary" id="cancel-skill-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
-      <button class="wide-btn secondary" id="import-skills-btn" style="margin-top:12px;">Import your 87-move starter list</button>
     </div>
 
     <div class="panel">
@@ -918,6 +918,18 @@
 
       <div class="field full" style="margin-top:16px;">
         <label>Movepool (select from skill list)</label>
+        <div class="sort-select-wrap" style="margin-bottom:8px;">
+          <label for="picker-sort">Sort:</label>
+          <select id="picker-sort">
+            <option value="listorder">List order</option>
+            <option value="alpha">Alphabetical</option>
+            <option value="type">Type</option>
+            <option value="power">Power (high–low)</option>
+            <option value="patk">P-ATK first</option>
+            <option value="matk">M-ATK first</option>
+            <option value="status">Status first</option>
+          </select>
+        </div>
         <div class="skill-picker" id="skill-picker"></div>
       </div>
 
@@ -969,6 +981,55 @@
 
       <div class="mon-grid" id="mon-grid"></div>
       <div class="empty-state" id="mon-empty-state">No Arcaiamon yet. Add your first one above.</div>
+    </div>
+  </div>
+
+  <!-- ITEMS TAB -->
+  <div id="panel-items" style="display:none;">
+    <div class="panel">
+      <h2 id="item-form-title">Add an item</h2>
+      <div class="form-grid" style="grid-template-columns: 1.4fr 1fr 2fr auto;">
+        <div class="field">
+          <label for="i-name">Name</label>
+          <input id="i-name" type="text" placeholder="e.g. Ember Charm">
+        </div>
+        <div class="field">
+          <label for="i-category">Category</label>
+          <select id="i-category">
+            <option value="Key Item">Key Item</option>
+            <option value="Held Item">Held Item</option>
+            <option value="Consumable">Consumable</option>
+            <option value="Held/Consumable Item">Held/Consumable Item</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="i-desc">Description</label>
+          <input id="i-desc" type="text" placeholder="What it does">
+        </div>
+        <button class="add-btn" id="add-item-btn" title="Add item">+</button>
+      </div>
+      <button class="wide-btn secondary" id="cancel-item-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
+    </div>
+
+    <div class="panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Item list</span>
+        <span class="count-tag" id="item-count-tag">0 items</span>
+      </h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nosort">Name</th>
+              <th class="nosort">Category</th>
+              <th class="nosort">Description</th>
+              <th class="nosort"></th>
+            </tr>
+          </thead>
+          <tbody id="item-body"></tbody>
+        </table>
+        <div class="empty-state" id="item-empty-state">No items yet. Add your first one above.</div>
+      </div>
     </div>
   </div>
 
@@ -1070,25 +1131,30 @@
   const tabBtnSkills = document.getElementById('tab-btn-skills');
   const tabBtnTalents = document.getElementById('tab-btn-talents');
   const tabBtnMons = document.getElementById('tab-btn-mons');
+  const tabBtnItems = document.getElementById('tab-btn-items');
   const panelSkills = document.getElementById('panel-skills');
   const panelTalents = document.getElementById('panel-talents');
   const panelMons = document.getElementById('panel-mons');
+  const panelItems = document.getElementById('panel-items');
   const headerSub = document.getElementById('header-sub');
 
   function showTab(which){
     tabBtnSkills.classList.toggle('active', which === 'skills');
     tabBtnTalents.classList.toggle('active', which === 'talents');
     tabBtnMons.classList.toggle('active', which === 'mons');
+    tabBtnItems.classList.toggle('active', which === 'items');
     panelSkills.style.display = which === 'skills' ? 'block' : 'none';
     panelTalents.style.display = which === 'talents' ? 'block' : 'none';
     panelMons.style.display = which === 'mons' ? 'block' : 'none';
-    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ' };
+    panelItems.style.display = which === 'items' ? 'block' : 'none';
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ' };
     headerSub.childNodes[0].textContent = subs[which];
     if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
   }
   tabBtnSkills.addEventListener('click', () => showTab('skills'));
   tabBtnTalents.addEventListener('click', () => showTab('talents'));
   tabBtnMons.addEventListener('click', () => showTab('mons'));
+  tabBtnItems.addEventListener('click', () => showTab('items'));
 
   /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
@@ -1122,14 +1188,16 @@
   });
   if(sessionStorage.getItem('movedex-unlocked') === 'yes'){ unlockApp(); }
 
-  /* ============ SHARED DOC: SKILLS + TALENTS ============ */
+  /* ============ SHARED DOC: SKILLS + TALENTS + ITEMS ============ */
   let skills = [];
   let talents = [];
+  let items = [];
   let sortKey = null;
   let sortDir = 1;
   let saveTimeout = null;
   let editingSkillId = null;
   let editingTalentId = null;
+  let editingItemId = null;
 
   async function loadShared(){
     setSyncStatus('Loading…', true);
@@ -1138,6 +1206,7 @@
       const data = snap.exists() ? snap.data() : {};
       skills = Array.isArray(data.skills) ? data.skills : [];
       talents = Array.isArray(data.talents) ? data.talents : [];
+      items = Array.isArray(data.items) ? data.items : [];
       setSyncStatus('Synced');
     }catch(err){
       console.error(err);
@@ -1145,6 +1214,7 @@
     }
     renderSkills();
     renderTalents();
+    renderItems();
     renderSkillPicker();
     renderTalentSelects();
     renderMons();
@@ -1155,7 +1225,7 @@
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try{
-        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents });
+        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items });
         setSyncStatus('Synced');
       }catch(err){
         console.error(err);
@@ -1232,134 +1302,6 @@
     });
   }
 
-  const STARTER_SKILLS = [
-    ["Slam","Basic","Physical",45,100,""],
-    ["Trip","Basic","Status","","100","Lowers opponent's P-DEF by 1 tier"],
-    ["Distract","Basic","Status","","100","Lowers opponent's P-ATK by 1 tier"],
-    ["Peck","Basic","Physical",30,100,"30% chance to lower opponent's M-DEF by 1 tier"],
-    ["Furious Slam","Basic","Physical",80,100,"10% chance to raise user's P-ATK by 1 tier and 10% chance to lower opponent's P-DEF by 1 tier"],
-    ["Gamblers Ray","Basic","Magic",80,100,"30% chance to inflict a random status condition on opponent"],
-    ["Check","Basic","Physical",65,90,"30% chance to deal 50% bonus damage"],
-    ["Concuss","Basic","Magic",60,100,"10% chance to lower opponent's M-DEF by 1 tier"],
-
-    ["Dowse","Water","Magic",40,100,"Inflicts Soaked on opponent"],
-    ["Downpour","Water","Status","","100","Triggers Rain field condition"],
-    ["Crashing Wave","Water","Magic",80,100,"30% chance to inflict Soaked on opponent"],
-    ["Hydro Jet","Water","Physical",80,90,"Ignores opponent's P-DEF tier increases"],
-    ["Drench","Water","Magic",55,85,"Lowers opponent's Agility by 1 tier"],
-    ["Watery Crash","Water","Physical",65,95,""],
-
-    ["Singe","Fire","Physical",40,100,""],
-    ["Fiery Impact","Fire","Physical",90,100,"10% chance to inflict Singed"],
-    ["Sweltering Sun","Fire","Status","","100","Triggers Solar field condition"],
-    ["Burn","Fire","Status","","100","Inflicts Singed on opponent"],
-    ["Cauterize","Fire","Physical",20,100,"Clears opponent's Poison condition and deals damage equal to 1/2 their max HP"],
-    ["Crash and Burn","Fire","Physical",90,100,"10% chance to inflict Singed"],
-    ["Molten Breath","Fire","Magic",75,100,"30% chance to raise user's P-DEF by 1 tier"],
-    ["Fire Lick","Fire","Physical",65,100,""],
-    ["Burning","Fire","Magic",100,50,"Deals 50% more damage if user has a tier increase in P-DEF"],
-
-    ["Zap","Volt","Magic",40,100,""],
-    ["Electrify","Volt","Magic",90,100,"10% chance to inflict Stunned"],
-    ["Static Shock","Volt","Physical",10,100,"Inflicts Stunned on opponent"],
-    ["Blink Barrage","Volt","Physical",20,100,"Hits 2-5 times (Multi-hit)"],
-    ["Lightning Bolt","Volt","Magic",65,100,"30% chance to inflict Stunned. Strikes twice under Rain field condition"],
-    ["Flash and Zap","Volt","Physical",75,90,"Increased priority"],
-    ["Volt Strike","Volt","Physical",65,100,""],
-    ["Crackle","Volt","Magic",20,100,"Raises user's M-ATK by 1 tier. If user already has +1 or more M-ATK tier increase, deals 55 power instead and no stat increase"],
-    ["Superconduct","Volt","Physical",70,100,"Deals double damage to Frost-type Arcaiamon and Arcaiamon afflicted with Chilled status"],
-
-    ["Sleep Spore","Flora","Status","","70","Puts opponent to sleep (Spore)"],
-    ["Poison Spore","Flora","Status","","70","Inflicts Poisoned on opponent (Spore)"],
-    ["Stun Spore","Flora","Status","","70","Inflicts Stunned on opponent (Spore)"],
-    ["Absorbing Ray","Flora","Magic",75,100,"Restore HP equal to 1/3 of damage dealt (doubled to 2/3 under Solar condition)"],
-    ["Seed Whip","Flora","Physical",70,100,"Target takes 10% of max HP at end of each turn for 3 turns (20% under Solar condition) (Seed)"],
-    ["Energy Leech","Flora","Magic",50,100,"Restore HP equal to 1/3 of damage dealt (2/3 if target is Water-type)"],
-    ["Vine Lash","Flora","Physical",70,80,""],
-    ["Grass Cut","Flora","Physical",40,100,""],
-    ["Drain","Flora","Magic",35,100,"Restore HP equal to 1/3 of damage dealt"],
-
-    ["Sub-Zero Touch","Frost","Physical",50,100,"Inflicts Chilled on opponent"],
-    ["Blizzard","Frost","Status","","100","Triggers Snow field condition"],
-    ["Frostbite","Frost","Magic",50,100,"50% chance to lower opponent's M-DEF by 1 tier"],
-    ["Ice Lance","Frost","Physical",110,100,"Does half damage if user is below half HP"],
-    ["Winter Ray","Frost","Magic",80,100,"15% chance to inflict Chilled"],
-
-    ["Toxin","Poison","Status","","100","Inflicts Poisoned on opponent"],
-    ["Festering Scratch","Poison","Physical",80,100,"30% chance to inflict Poisoned"],
-    ["Oozing Slash","Poison","Physical",80,100,"30% chance to inflict Poisoned"],
-    ["Pestilence","Poison","Magic",50,100,"30% chance to inflict Poisoned, double damage if target is already Poisoned"],
-
-    ["Puff","Wind","Magic",40,100,""],
-    ["Last Breath","Wind","Magic",90,100,"If target is knocked out, next Mon to enter inherits their status condition"],
-    ["Cyclonic Slash","Wind","Physical",70,95,"Double damage if you go first"],
-    ["Passing Breeze","Wind","Physical",45,100,"Transfers user's status condition to the opponent"],
-    ["Emboldened Gust","Wind","Magic",20,100,"Increased priority, transfers all user's negative tier changes to the opponent"],
-    ["Whisk Away","Wind","Magic",65,100,"Forces opponent to swap out after being hit, lowered priority"],
-
-    ["Sparkle","Mystic","Magic",40,100,""],
-    ["Energy Beam","Mystic","Magic",90,100,"10% chance to inflict Hexed"],
-    ["Blood Moon","Mystic","Status","","100","Triggers Full Moon field condition"],
-    ["Curse","Mystic","Status","","100","Inflicts Hexed on opponent"],
-    ["Arcane Bolt","Mystic","Magic",100,100,"10% chance to inflict Hexed"],
-    ["Aiather Drain","Mystic","Physical",75,100,"Restore HP equal to 1/3 of damage dealt"],
-    ["Fairy Flame","Mystic","Magic",65,100,"20% chance to inflict Singed"],
-    ["Moonlight Ray","Mystic","Magic",70,100,"Inflicts Hexed if Full Moon field condition is active"],
-
-    ["Swarm","Insect","Physical",30,100,"50% chance to inflict Infested"],
-    ["Blood Sucker","Insect","Physical",50,100,"Restore HP equal to 1/2 of damage dealt"],
-    ["Vice","Insect","Physical",80,100,"Target cannot switch out"],
-    ["Viscous Swarm","Insect","Magic",90,100,"10% chance to inflict Infested"],
-
-    ["Reckless Abandon","Earth","Physical",120,80,"30% chance to increase user's P-ATK by 1 tier"],
-    ["Rugged Pass","Earth","Status","","100","Triggers Rugged field condition"],
-    ["Stone Breaker","Earth","Physical",120,100,"User takes 10% of their max HP as recoil damage"],
-    ["Ancient Shards","Earth","Magic",60,100,"Double damage if you go last"],
-
-    ["Haunt","Spirit","Physical",70,100,"Sleeping opponents take double damage"],
-    ["Whisper","Spirit","Status","","80","Puts opponent to sleep"],
-    ["Life Drain","Spirit","Magic",70,100,"Restore HP equal to 25% of damage dealt"],
-    ["Soul Slash","Spirit","Physical",85,100,"Deals damage based on opponent's M-DEF instead of P-DEF"],
-    ["Fade Slash","Spirit","Physical",65,100,"User swaps out after hitting the opponent"],
-
-    ["Pray","Holy","Status","","100","Raises user's M-ATK, M-DEF, and Agility by 1 tier; lowers user's P-DEF and P-ATK by 1 tier"],
-    ["Harm","Holy","Magic",90,100,""],
-    ["Cleanse","Holy","Status","","100","Clears all status conditions from your party"],
-    ["Purify","Holy","Physical",70,100,"If target has a status condition, clears it and deals double damage"],
-    ["Revitalize","Holy","Physical",100,100,"30% chance to remove user's own status condition"],
-    ["Missionary","Holy","Status","","100","Raises user's M-ATK and M-DEF by 1 tier. If on a field condition: raises M-ATK by 2 tiers, M-DEF by 2 tiers, and Agility by 1 tier"],
-
-    ["Magnetic Field","Iron","Status","","100","Triggers Precision field condition"],
-    ["Over Extend","Iron","Physical",155,60,"If you miss, skip your next turn"],
-    ["Steely Screech","Iron","Magic",75,90,"50% chance to lower opponent's M-DEF by 1 tier"],
-    ["Shackles","Iron","Status","","100","Lowers opponent's Agility by 1 tier and prevents them from swapping out"]
-  ];
-
-  document.getElementById('import-skills-btn').addEventListener('click', () => {
-    const existingNames = new Set(skills.map(s => s.name.toLowerCase()));
-    let added = 0;
-    STARTER_SKILLS.forEach(([name, type, category, power, accuracy, desc]) => {
-      if(existingNames.has(name.toLowerCase())) return;
-      skills.push({
-        id: Date.now().toString() + Math.random().toString(36).slice(2,8),
-        name, type, category,
-        power: power === '' ? '' : Number(power),
-        accuracy: accuracy === '' ? '' : Number(accuracy),
-        desc
-      });
-      existingNames.add(name.toLowerCase());
-      added++;
-    });
-    if(added === 0){
-      alert('All of these are already in your skill list.');
-      return;
-    }
-    renderSkills();
-    renderSkillPicker();
-    saveShared();
-    alert(`Imported ${added} skill${added === 1 ? '' : 's'}.`);
-  });
-
   const addSkillBtn = document.getElementById('add-btn');
   const cancelSkillEditBtn = document.getElementById('cancel-skill-edit-btn');
   const skillFormTitle = document.getElementById('skill-form-title');
@@ -1429,6 +1371,31 @@
     });
   });
 
+  let pickerSortMode = 'listorder';
+
+  function sortSkillsForPicker(list){
+    const sorted = [...list];
+    if(pickerSortMode === 'alpha'){
+      sorted.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    } else if(pickerSortMode === 'type'){
+      sorted.sort((a,b) => (a.type || '').localeCompare(b.type || '') || (a.name || '').localeCompare(b.name || ''));
+    } else if(pickerSortMode === 'power'){
+      sorted.sort((a,b) => (Number(b.power) || 0) - (Number(a.power) || 0));
+    } else if(pickerSortMode === 'patk'){
+      sorted.sort((a,b) => (a.category === 'Physical' ? 0 : 1) - (b.category === 'Physical' ? 0 : 1));
+    } else if(pickerSortMode === 'matk'){
+      sorted.sort((a,b) => (a.category === 'Magic' ? 0 : 1) - (b.category === 'Magic' ? 0 : 1));
+    } else if(pickerSortMode === 'status'){
+      sorted.sort((a,b) => (a.category === 'Status' ? 0 : 1) - (b.category === 'Status' ? 0 : 1));
+    }
+    return sorted;
+  }
+
+  document.getElementById('picker-sort').addEventListener('change', e => {
+    pickerSortMode = e.target.value;
+    renderSkillPicker();
+  });
+
   function renderSkillPicker(){
     const picker = document.getElementById('skill-picker');
     if(skills.length === 0){
@@ -1436,7 +1403,7 @@
       return;
     }
     picker.innerHTML = '';
-    skills.forEach(s => {
+    sortSkillsForPicker(skills).forEach(s => {
       const chip = document.createElement('label');
       chip.className = 'skill-chip tt' + (selectedSkillIds.has(s.id) ? ' selected' : '');
       chip.dataset.tooltip = s.desc || 'No description';
@@ -1546,6 +1513,93 @@
       sel.appendChild(new Option('None', ''));
       sortedTalents.forEach(t => sel.appendChild(new Option(t.name, t.id)));
       if(sortedTalents.some(t => t.id === current)) sel.value = current;
+    });
+  }
+
+  /* ============ ITEMS ============ */
+  const addItemBtn = document.getElementById('add-item-btn');
+  const cancelItemEditBtn = document.getElementById('cancel-item-edit-btn');
+  const itemFormTitle = document.getElementById('item-form-title');
+
+  function resetItemForm(){
+    document.getElementById('i-name').value = '';
+    document.getElementById('i-desc').value = '';
+    document.getElementById('i-category').selectedIndex = 0;
+    editingItemId = null;
+    addItemBtn.textContent = '+';
+    itemFormTitle.textContent = 'Add an item';
+    cancelItemEditBtn.style.display = 'none';
+  }
+  function loadItemIntoForm(item){
+    editingItemId = item.id;
+    document.getElementById('i-name').value = item.name || '';
+    document.getElementById('i-category').value = item.category || 'Key Item';
+    document.getElementById('i-desc').value = item.desc || '';
+    addItemBtn.textContent = '✓';
+    itemFormTitle.textContent = `Editing ${item.name}`;
+    cancelItemEditBtn.style.display = 'inline-block';
+    document.getElementById('i-name').focus();
+  }
+  cancelItemEditBtn.addEventListener('click', resetItemForm);
+
+  addItemBtn.addEventListener('click', () => {
+    const name = document.getElementById('i-name').value.trim();
+    const category = document.getElementById('i-category').value;
+    const desc = document.getElementById('i-desc').value.trim();
+    if(!name){ document.getElementById('i-name').focus(); return; }
+
+    if(editingItemId){
+      const idx = items.findIndex(i => i.id === editingItemId);
+      if(idx !== -1) items[idx] = { ...items[idx], name, category, desc };
+    } else {
+      items.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, category, desc });
+    }
+    resetItemForm();
+    renderItems(); saveShared();
+  });
+
+  function renderItems(){
+    const tbody = document.getElementById('item-body');
+    const emptyState = document.getElementById('item-empty-state');
+    const countTag = document.getElementById('item-count-tag');
+    countTag.textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
+
+    const sortedItems = [...items].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    tbody.innerHTML = '';
+    if(sortedItems.length === 0){
+      emptyState.style.display = 'block';
+    } else {
+      emptyState.style.display = 'none';
+      sortedItems.forEach(i => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(i.name)}</td>
+          <td><span class="cat-badge">${escapeHtml(i.category)}</span></td>
+          <td class="desc-cell">${escapeHtml(i.desc) || '—'}</td>
+          <td style="white-space:nowrap;">
+            <button class="del-btn edit-item-btn" data-id="${i.id}" title="Edit">✎</button>
+            <button class="del-btn" data-id="${i.id}" title="Remove">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    tbody.querySelectorAll('.del-btn:not(.edit-item-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if(!confirm(`Delete item "${item ? item.name : ''}"? This can't be undone.`)) return;
+        items = items.filter(i => i.id !== btn.dataset.id);
+        if(editingItemId === btn.dataset.id) resetItemForm();
+        renderItems(); saveShared();
+      });
+    });
+    tbody.querySelectorAll('.edit-item-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if(item) loadItemIntoForm(item);
+      });
     });
   }
 
