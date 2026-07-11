@@ -103,7 +103,7 @@
 
   .form-grid{
     display:grid;
-    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 1.6fr auto;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 1.6fr auto;
     gap:10px;
     align-items:end;
   }
@@ -708,6 +708,14 @@
           <input id="f-acc" type="number" min="0" max="100" placeholder="100">
         </div>
         <div class="field">
+          <label for="f-tier">Tier</label>
+          <select id="f-tier">
+            <option value="1">Tier 1</option>
+            <option value="2">Tier 2</option>
+            <option value="3">Tier 3</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="f-desc">Description / effect</label>
           <input id="f-desc" type="text" placeholder="What it does">
         </div>
@@ -730,6 +738,7 @@
               <th data-key="category">Category<span class="arrow"></span></th>
               <th data-key="power">Power<span class="arrow"></span></th>
               <th data-key="accuracy">Accuracy<span class="arrow"></span></th>
+              <th data-key="tier">Tier<span class="arrow"></span></th>
               <th class="nosort">Description</th>
               <th class="nosort"></th>
             </tr>
@@ -1230,7 +1239,7 @@
     countTag.textContent = `${skills.length} skill${skills.length === 1 ? '' : 's'}`;
 
     let list = [...skills];
-    const numericFields = new Set(['power', 'accuracy']);
+    const numericFields = new Set(['power', 'accuracy', 'tier']);
     if(sortKey){
       list.sort((a,b) => {
         let av = a[sortKey], bv = b[sortKey];
@@ -1266,6 +1275,7 @@
           <td><span class="cat-badge">${m.category}</span></td>
           <td class="num-cell">${m.power === '' ? '—' : m.power}</td>
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
+          <td><span class="cat-badge">T${m.tier || 1}</span></td>
           <td class="desc-cell">${escapeHtml(m.desc) || '—'}</td>
           <td style="white-space:nowrap;">
             <button class="del-btn edit-skill-btn" data-id="${m.id}" title="Edit">✎</button>
@@ -1314,6 +1324,7 @@
     document.getElementById('f-desc').value = '';
     document.getElementById('f-type').selectedIndex = 0;
     document.getElementById('f-cat').selectedIndex = 0;
+    document.getElementById('f-tier').value = '1';
     editingSkillId = null;
     addSkillBtn.textContent = '+';
     addSkillBtn.title = 'Add skill';
@@ -1327,6 +1338,7 @@
     document.getElementById('f-cat').value = skill.category || 'Physical';
     document.getElementById('f-power').value = skill.power ?? '';
     document.getElementById('f-acc').value = skill.accuracy ?? '';
+    document.getElementById('f-tier').value = String(skill.tier || 1);
     document.getElementById('f-desc').value = skill.desc || '';
     addSkillBtn.textContent = '✓';
     addSkillBtn.title = 'Save changes';
@@ -1342,6 +1354,7 @@
     const category = document.getElementById('f-cat').value;
     const power = document.getElementById('f-power').value;
     const accuracy = document.getElementById('f-acc').value;
+    const tier = Number(document.getElementById('f-tier').value) || 1;
     const desc = document.getElementById('f-desc').value.trim();
     if(!name){ document.getElementById('f-name').focus(); return; }
 
@@ -1350,14 +1363,14 @@
       if(idx !== -1){
         skills[idx] = { ...skills[idx], name, type, category,
           power: power === '' ? '' : Number(power),
-          accuracy: accuracy === '' ? '' : Number(accuracy), desc };
+          accuracy: accuracy === '' ? '' : Number(accuracy), tier, desc };
       }
     } else {
       skills.push({
         id: Date.now().toString() + Math.random().toString(36).slice(2,6),
         name, type, category,
         power: power === '' ? '' : Number(power),
-        accuracy: accuracy === '' ? '' : Number(accuracy), desc
+        accuracy: accuracy === '' ? '' : Number(accuracy), tier, desc
       });
     }
     resetSkillForm();
