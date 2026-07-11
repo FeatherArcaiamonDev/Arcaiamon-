@@ -713,6 +713,7 @@
             <option value="1">Tier 1</option>
             <option value="2">Tier 2</option>
             <option value="3">Tier 3</option>
+            <option value="4">Tier 4</option>
           </select>
         </div>
         <div class="field">
@@ -1269,6 +1270,7 @@
       emptyState.style.display = 'none';
       list.forEach(m => {
         const tr = document.createElement('tr');
+        tr.dataset.skillId = m.id;
         tr.innerHTML = `
           <td class="tt" data-tooltip="${escapeHtml(m.desc || 'No description')}">${escapeHtml(m.name)}</td>
           <td><span class="type-badge" style="background:${typeColorVar(m.type)}">${m.type}</span></td>
@@ -1358,6 +1360,7 @@
     const desc = document.getElementById('f-desc').value.trim();
     if(!name){ document.getElementById('f-name').focus(); return; }
 
+    const wasEditingSkillId = editingSkillId;
     if(editingSkillId){
       const idx = skills.findIndex(s => s.id === editingSkillId);
       if(idx !== -1){
@@ -1375,6 +1378,12 @@
     }
     resetSkillForm();
     renderSkills(); renderSkillPicker(); saveShared();
+    if(wasEditingSkillId){
+      setTimeout(() => {
+        const target = document.querySelector(`tr[data-skill-id="${wasEditingSkillId}"]`);
+        if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+      }, 150);
+    }
   });
 
   document.querySelectorAll('#panel-skills thead th[data-key]').forEach(th => {
@@ -1439,6 +1448,7 @@
     const desc = document.getElementById('t-desc').value.trim();
     if(!name){ document.getElementById('t-name').focus(); return; }
 
+    const wasEditingTalentId = editingTalentId;
     if(editingTalentId){
       const idx = talents.findIndex(t => t.id === editingTalentId);
       if(idx !== -1) talents[idx] = { ...talents[idx], name, desc };
@@ -1447,6 +1457,12 @@
     }
     resetTalentForm();
     renderTalents(); renderTalentSelects(); saveShared();
+    if(wasEditingTalentId){
+      setTimeout(() => {
+        const target = document.querySelector(`tr[data-talent-id="${wasEditingTalentId}"]`);
+        if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+      }, 150);
+    }
   });
 
   function renderTalents(){
@@ -1464,6 +1480,7 @@
       emptyState.style.display = 'none';
       sortedTalents.forEach(t => {
         const tr = document.createElement('tr');
+        tr.dataset.talentId = t.id;
         tr.innerHTML = `
           <td>${escapeHtml(t.name)}</td>
           <td class="desc-cell">${escapeHtml(t.desc) || '—'}</td>
@@ -1537,6 +1554,7 @@
     const desc = document.getElementById('i-desc').value.trim();
     if(!name){ document.getElementById('i-name').focus(); return; }
 
+    const wasEditingItemId = editingItemId;
     if(editingItemId){
       const idx = items.findIndex(i => i.id === editingItemId);
       if(idx !== -1) items[idx] = { ...items[idx], name, category, desc };
@@ -1545,6 +1563,12 @@
     }
     resetItemForm();
     renderItems(); saveShared();
+    if(wasEditingItemId){
+      setTimeout(() => {
+        const target = document.querySelector(`tr[data-item-id="${wasEditingItemId}"]`);
+        if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+      }, 150);
+    }
   });
 
   function renderItems(){
@@ -1562,6 +1586,7 @@
       emptyState.style.display = 'none';
       sortedItems.forEach(i => {
         const tr = document.createElement('tr');
+        tr.dataset.itemId = i.id;
         tr.innerHTML = `
           <td>${escapeHtml(i.name)}</td>
           <td><span class="cat-badge">${escapeHtml(i.category)}</span></td>
