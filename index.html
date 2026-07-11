@@ -1230,10 +1230,17 @@
     countTag.textContent = `${skills.length} skill${skills.length === 1 ? '' : 's'}`;
 
     let list = [...skills];
+    const numericFields = new Set(['power', 'accuracy']);
     if(sortKey){
       list.sort((a,b) => {
         let av = a[sortKey], bv = b[sortKey];
-        if(typeof av === 'string'){ av = av.toLowerCase(); bv = bv.toLowerCase(); }
+        if(numericFields.has(sortKey)){
+          av = av === '' || av === null || av === undefined ? -Infinity : Number(av);
+          bv = bv === '' || bv === null || bv === undefined ? -Infinity : Number(bv);
+        } else if(typeof av === 'string' || typeof bv === 'string'){
+          av = (av ?? '').toString().toLowerCase();
+          bv = (bv ?? '').toString().toLowerCase();
+        }
         if(av < bv) return -1 * sortDir;
         if(av > bv) return 1 * sortDir;
         return 0;
