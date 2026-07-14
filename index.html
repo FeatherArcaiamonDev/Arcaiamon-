@@ -606,6 +606,37 @@
   .sort-select-wrap select{ width:auto; min-width:180px; }
   #mon-search{ max-width:280px; }
 
+  /* Status condition highlighting */
+  .status-hl{
+    color:var(--accent);
+    text-decoration:underline dotted;
+    text-underline-offset:2px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .status-hl:hover{ color:#dbb87d; }
+
+  #status-modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    z-index:300;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  #status-modal-overlay.open{ display:flex; }
+  #status-modal-box{
+    background:var(--panel);
+    border:1px solid var(--accent);
+    border-radius:10px;
+    padding:22px;
+    max-width:360px;
+    width:100%;
+    box-shadow:0 10px 40px rgba(0,0,0,0.5);
+  }
+
   /* Order-aware ascension picker */
   .op-wrap{ position:relative; }
   .op-btn{
@@ -664,6 +695,16 @@
 
 <div id="app">
 
+<div id="status-modal-overlay">
+  <div id="status-modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px;">
+      <h3 id="status-modal-title" style="margin:0; font-family:'Cinzel', serif; color:var(--accent);"></h3>
+      <button id="status-modal-close" style="background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer;">✕</button>
+    </div>
+    <p id="status-modal-desc" style="margin:12px 0 0; font-size:0.88rem; color:var(--text); line-height:1.5;"></p>
+  </div>
+</div>
+
 <header>
   <h1>Arcaiamon Dex</h1>
   <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
@@ -674,6 +715,7 @@
   <button class="tab-btn" id="tab-btn-talents">Talents</button>
   <button class="tab-btn active" id="tab-btn-skills">Skills</button>
   <button class="tab-btn" id="tab-btn-items">Items</button>
+  <button class="tab-btn" id="tab-btn-conditions">Status Conditions</button>
 </div>
 
 <div class="wrap">
@@ -1031,6 +1073,45 @@
     </div>
   </div>
 
+  <!-- STATUS CONDITIONS TAB -->
+  <div id="panel-conditions" style="display:none;">
+    <div class="panel">
+      <h2 id="condition-form-title">Add a status condition</h2>
+      <div class="form-grid" style="grid-template-columns: 1fr 2fr auto;">
+        <div class="field">
+          <label for="c-name">Name</label>
+          <input id="c-name" type="text" placeholder="e.g. Poisoned">
+        </div>
+        <div class="field">
+          <label for="c-desc">Description</label>
+          <input id="c-desc" type="text" placeholder="What it does">
+        </div>
+        <button class="add-btn" id="add-condition-btn" title="Add status condition">+</button>
+      </div>
+      <button class="wide-btn secondary" id="cancel-condition-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
+    </div>
+
+    <div class="panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Status condition list</span>
+        <span class="count-tag" id="condition-count-tag">0 conditions</span>
+      </h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nosort">Name</th>
+              <th class="nosort">Description</th>
+              <th class="nosort"></th>
+            </tr>
+          </thead>
+          <tbody id="condition-body"></tbody>
+        </table>
+        <div class="empty-state" id="condition-empty-state">No status conditions yet. Add your first one above.</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1130,10 +1211,12 @@
   const tabBtnTalents = document.getElementById('tab-btn-talents');
   const tabBtnMons = document.getElementById('tab-btn-mons');
   const tabBtnItems = document.getElementById('tab-btn-items');
+  const tabBtnConditions = document.getElementById('tab-btn-conditions');
   const panelSkills = document.getElementById('panel-skills');
   const panelTalents = document.getElementById('panel-talents');
   const panelMons = document.getElementById('panel-mons');
   const panelItems = document.getElementById('panel-items');
+  const panelConditions = document.getElementById('panel-conditions');
   const headerSub = document.getElementById('header-sub');
 
   function showTab(which){
@@ -1141,11 +1224,13 @@
     tabBtnTalents.classList.toggle('active', which === 'talents');
     tabBtnMons.classList.toggle('active', which === 'mons');
     tabBtnItems.classList.toggle('active', which === 'items');
+    tabBtnConditions.classList.toggle('active', which === 'conditions');
     panelSkills.style.display = which === 'skills' ? 'block' : 'none';
     panelTalents.style.display = which === 'talents' ? 'block' : 'none';
     panelMons.style.display = which === 'mons' ? 'block' : 'none';
     panelItems.style.display = which === 'items' ? 'block' : 'none';
-    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ' };
+    panelConditions.style.display = which === 'conditions' ? 'block' : 'none';
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ' };
     headerSub.childNodes[0].textContent = subs[which];
     if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
   }
@@ -1153,6 +1238,7 @@
   tabBtnTalents.addEventListener('click', () => showTab('talents'));
   tabBtnMons.addEventListener('click', () => showTab('mons'));
   tabBtnItems.addEventListener('click', () => showTab('items'));
+  tabBtnConditions.addEventListener('click', () => showTab('conditions'));
 
   /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
@@ -1186,16 +1272,18 @@
   });
   if(sessionStorage.getItem('movedex-unlocked') === 'yes'){ unlockApp(); }
 
-  /* ============ SHARED DOC: SKILLS + TALENTS + ITEMS ============ */
+  /* ============ SHARED DOC: SKILLS + TALENTS + ITEMS + CONDITIONS ============ */
   let skills = [];
   let talents = [];
   let items = [];
+  let conditions = [];
   let sortKey = null;
   let sortDir = 1;
   let saveTimeout = null;
   let editingSkillId = null;
   let editingTalentId = null;
   let editingItemId = null;
+  let editingConditionId = null;
 
   async function loadShared(){
     setSyncStatus('Loading…', true);
@@ -1205,6 +1293,7 @@
       skills = Array.isArray(data.skills) ? data.skills : [];
       talents = Array.isArray(data.talents) ? data.talents : [];
       items = Array.isArray(data.items) ? data.items : [];
+      conditions = Array.isArray(data.conditions) ? data.conditions : [];
       setSyncStatus('Synced');
     }catch(err){
       console.error(err);
@@ -1213,6 +1302,7 @@
     renderSkills();
     renderTalents();
     renderItems();
+    renderConditions();
     renderSkillPicker();
     renderTalentSelects();
     renderMons();
@@ -1223,7 +1313,7 @@
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try{
-        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items });
+        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions });
         setSyncStatus('Synced');
       }catch(err){
         console.error(err);
@@ -1278,7 +1368,7 @@
           <td class="num-cell">${m.power === '' ? '—' : m.power}</td>
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
           <td><span class="cat-badge">T${m.tier || 1}</span></td>
-          <td class="desc-cell">${escapeHtml(m.desc) || '—'}</td>
+          <td class="desc-cell">${highlightConditions(m.desc) || '—'}</td>
           <td style="white-space:nowrap;">
             <button class="del-btn edit-skill-btn" data-id="${m.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${m.id}" title="Remove">✕</button>
@@ -1483,7 +1573,7 @@
         tr.dataset.talentId = t.id;
         tr.innerHTML = `
           <td>${escapeHtml(t.name)}</td>
-          <td class="desc-cell">${escapeHtml(t.desc) || '—'}</td>
+          <td class="desc-cell">${highlightConditions(t.desc) || '—'}</td>
           <td style="white-space:nowrap;">
             <button class="del-btn edit-talent-btn" data-id="${t.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${t.id}" title="Remove">✕</button>
@@ -1616,6 +1706,138 @@
       });
     });
   }
+
+  /* ============ STATUS CONDITIONS ============ */
+  const addConditionBtn = document.getElementById('add-condition-btn');
+  const cancelConditionEditBtn = document.getElementById('cancel-condition-edit-btn');
+  const conditionFormTitle = document.getElementById('condition-form-title');
+
+  function resetConditionForm(){
+    document.getElementById('c-name').value = '';
+    document.getElementById('c-desc').value = '';
+    editingConditionId = null;
+    addConditionBtn.textContent = '+';
+    conditionFormTitle.textContent = 'Add a status condition';
+    cancelConditionEditBtn.style.display = 'none';
+  }
+  function loadConditionIntoForm(condition){
+    editingConditionId = condition.id;
+    document.getElementById('c-name').value = condition.name || '';
+    document.getElementById('c-desc').value = condition.desc || '';
+    addConditionBtn.textContent = '✓';
+    conditionFormTitle.textContent = `Editing ${condition.name}`;
+    cancelConditionEditBtn.style.display = 'inline-block';
+    document.getElementById('c-name').focus();
+  }
+  cancelConditionEditBtn.addEventListener('click', resetConditionForm);
+
+  addConditionBtn.addEventListener('click', () => {
+    const name = document.getElementById('c-name').value.trim();
+    const desc = document.getElementById('c-desc').value.trim();
+    if(!name){ document.getElementById('c-name').focus(); return; }
+
+    const wasEditingConditionId = editingConditionId;
+    if(editingConditionId){
+      const idx = conditions.findIndex(c => c.id === editingConditionId);
+      if(idx !== -1) conditions[idx] = { ...conditions[idx], name, desc };
+    } else {
+      conditions.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, desc });
+    }
+    resetConditionForm();
+    renderConditions(); renderSkills(); renderTalents(); saveShared();
+    if(wasEditingConditionId){
+      setTimeout(() => {
+        const target = document.querySelector(`tr[data-condition-id="${wasEditingConditionId}"]`);
+        if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+      }, 150);
+    }
+  });
+
+  function renderConditions(){
+    const tbody = document.getElementById('condition-body');
+    const emptyState = document.getElementById('condition-empty-state');
+    const countTag = document.getElementById('condition-count-tag');
+    countTag.textContent = `${conditions.length} condition${conditions.length === 1 ? '' : 's'}`;
+
+    const sortedConditions = [...conditions].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    tbody.innerHTML = '';
+    if(sortedConditions.length === 0){
+      emptyState.style.display = 'block';
+    } else {
+      emptyState.style.display = 'none';
+      sortedConditions.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.dataset.conditionId = c.id;
+        tr.innerHTML = `
+          <td>${escapeHtml(c.name)}</td>
+          <td class="desc-cell">${escapeHtml(c.desc) || '—'}</td>
+          <td style="white-space:nowrap;">
+            <button class="del-btn edit-condition-btn" data-id="${c.id}" title="Edit">✎</button>
+            <button class="del-btn" data-id="${c.id}" title="Remove">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    tbody.querySelectorAll('.del-btn:not(.edit-condition-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const condition = conditions.find(c => c.id === btn.dataset.id);
+        if(!confirm(`Delete status condition "${condition ? condition.name : ''}"? This can't be undone.`)) return;
+        conditions = conditions.filter(c => c.id !== btn.dataset.id);
+        if(editingConditionId === btn.dataset.id) resetConditionForm();
+        renderConditions(); renderSkills(); renderTalents(); saveShared();
+      });
+    });
+    tbody.querySelectorAll('.edit-condition-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const condition = conditions.find(c => c.id === btn.dataset.id);
+        if(condition) loadConditionIntoForm(condition);
+      });
+    });
+  }
+
+  /* ---- highlight status condition mentions in description text ---- */
+  function highlightConditions(text){
+    if(!text) return '';
+    let escaped = escapeHtml(text);
+    const sorted = [...conditions].filter(c => c.name).sort((a,b) => b.name.length - a.name.length);
+    sorted.forEach(cond => {
+      const escName = escapeHtml(cond.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`\\b(${escName})\\b`, 'gi');
+      escaped = escaped.replace(re, (match) => {
+        if(match.includes('</span>') || match.includes('data-status')) return match;
+        return `<span class="status-hl" data-status="${cond.id}">${match}</span>`;
+      });
+    });
+    return escaped;
+  }
+
+  /* ---- status condition popup modal ---- */
+  const statusModalOverlay = document.getElementById('status-modal-overlay');
+  const statusModalTitle = document.getElementById('status-modal-title');
+  const statusModalDesc = document.getElementById('status-modal-desc');
+  const statusModalClose = document.getElementById('status-modal-close');
+
+  function openStatusModal(conditionId){
+    const cond = conditions.find(c => c.id === conditionId);
+    if(!cond) return;
+    statusModalTitle.textContent = cond.name;
+    statusModalDesc.textContent = cond.desc || 'No description yet.';
+    statusModalOverlay.classList.add('open');
+  }
+  function closeStatusModal(){
+    statusModalOverlay.classList.remove('open');
+  }
+  statusModalClose.addEventListener('click', closeStatusModal);
+  statusModalOverlay.addEventListener('click', e => {
+    if(e.target === statusModalOverlay) closeStatusModal();
+  });
+  document.addEventListener('click', e => {
+    const hl = e.target.closest('.status-hl');
+    if(hl) openStatusModal(hl.dataset.status);
+  });
 
   const OP_FIELDS = ['m-preascension', 'm-ascension1', 'm-ascension2', 'm-ascension3'];
 
