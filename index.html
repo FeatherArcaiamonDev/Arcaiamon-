@@ -616,6 +616,15 @@
   }
   .status-hl:hover{ color:#dbb87d; }
 
+  .field-hl{
+    color:#5bb3d9;
+    text-decoration:underline dotted;
+    text-underline-offset:2px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .field-hl:hover{ color:#7fc9e8; }
+
   #status-modal-overlay{
     display:none;
     position:fixed;
@@ -716,6 +725,7 @@
   <button class="tab-btn active" id="tab-btn-skills">Skills</button>
   <button class="tab-btn" id="tab-btn-items">Items</button>
   <button class="tab-btn" id="tab-btn-conditions">Status Conditions</button>
+  <button class="tab-btn" id="tab-btn-fieldconditions">Field Conditions</button>
 </div>
 
 <div class="wrap">
@@ -1112,6 +1122,45 @@
     </div>
   </div>
 
+  <!-- FIELD CONDITIONS TAB -->
+  <div id="panel-fieldconditions" style="display:none;">
+    <div class="panel">
+      <h2 id="fieldcondition-form-title">Add a field condition</h2>
+      <div class="form-grid" style="grid-template-columns: 1fr 2fr auto;">
+        <div class="field">
+          <label for="fc-name">Name</label>
+          <input id="fc-name" type="text" placeholder="e.g. Rain">
+        </div>
+        <div class="field">
+          <label for="fc-desc">Description</label>
+          <input id="fc-desc" type="text" placeholder="What it does">
+        </div>
+        <button class="add-btn" id="add-fieldcondition-btn" title="Add field condition">+</button>
+      </div>
+      <button class="wide-btn secondary" id="cancel-fieldcondition-edit-btn" style="display:none; margin-top:12px;">Cancel edit</button>
+    </div>
+
+    <div class="panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Field condition list</span>
+        <span class="count-tag" id="fieldcondition-count-tag">0 conditions</span>
+      </h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nosort">Name</th>
+              <th class="nosort">Description</th>
+              <th class="nosort"></th>
+            </tr>
+          </thead>
+          <tbody id="fieldcondition-body"></tbody>
+        </table>
+        <div class="empty-state" id="fieldcondition-empty-state">No field conditions yet. Add your first one above.</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1212,11 +1261,13 @@
   const tabBtnMons = document.getElementById('tab-btn-mons');
   const tabBtnItems = document.getElementById('tab-btn-items');
   const tabBtnConditions = document.getElementById('tab-btn-conditions');
+  const tabBtnFieldConditions = document.getElementById('tab-btn-fieldconditions');
   const panelSkills = document.getElementById('panel-skills');
   const panelTalents = document.getElementById('panel-talents');
   const panelMons = document.getElementById('panel-mons');
   const panelItems = document.getElementById('panel-items');
   const panelConditions = document.getElementById('panel-conditions');
+  const panelFieldConditions = document.getElementById('panel-fieldconditions');
   const headerSub = document.getElementById('header-sub');
 
   function showTab(which){
@@ -1225,12 +1276,14 @@
     tabBtnMons.classList.toggle('active', which === 'mons');
     tabBtnItems.classList.toggle('active', which === 'items');
     tabBtnConditions.classList.toggle('active', which === 'conditions');
+    tabBtnFieldConditions.classList.toggle('active', which === 'fieldconditions');
     panelSkills.style.display = which === 'skills' ? 'block' : 'none';
     panelTalents.style.display = which === 'talents' ? 'block' : 'none';
     panelMons.style.display = which === 'mons' ? 'block' : 'none';
     panelItems.style.display = which === 'items' ? 'block' : 'none';
     panelConditions.style.display = which === 'conditions' ? 'block' : 'none';
-    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ' };
+    panelFieldConditions.style.display = which === 'fieldconditions' ? 'block' : 'none';
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ', fieldconditions: 'Field condition library ' };
     headerSub.childNodes[0].textContent = subs[which];
     if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
   }
@@ -1239,6 +1292,7 @@
   tabBtnMons.addEventListener('click', () => showTab('mons'));
   tabBtnItems.addEventListener('click', () => showTab('items'));
   tabBtnConditions.addEventListener('click', () => showTab('conditions'));
+  tabBtnFieldConditions.addEventListener('click', () => showTab('fieldconditions'));
 
   /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
@@ -1277,6 +1331,7 @@
   let talents = [];
   let items = [];
   let conditions = [];
+  let fieldConditions = [];
   let sortKey = null;
   let sortDir = 1;
   let saveTimeout = null;
@@ -1284,6 +1339,7 @@
   let editingTalentId = null;
   let editingItemId = null;
   let editingConditionId = null;
+  let editingFieldConditionId = null;
 
   async function loadShared(){
     setSyncStatus('Loading…', true);
@@ -1294,6 +1350,7 @@
       talents = Array.isArray(data.talents) ? data.talents : [];
       items = Array.isArray(data.items) ? data.items : [];
       conditions = Array.isArray(data.conditions) ? data.conditions : [];
+      fieldConditions = Array.isArray(data.fieldConditions) ? data.fieldConditions : [];
       setSyncStatus('Synced');
     }catch(err){
       console.error(err);
@@ -1303,6 +1360,7 @@
     renderTalents();
     renderItems();
     renderConditions();
+    renderFieldConditions();
     renderSkillPicker();
     renderTalentSelects();
     renderMons();
@@ -1313,7 +1371,7 @@
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try{
-        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions });
+        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions, fieldConditions });
         setSyncStatus('Synced');
       }catch(err){
         console.error(err);
@@ -1798,32 +1856,128 @@
     });
   }
 
-  /* ---- highlight status condition mentions in description text ---- */
+  /* ============ FIELD CONDITIONS ============ */
+  const addFieldConditionBtn = document.getElementById('add-fieldcondition-btn');
+  const cancelFieldConditionEditBtn = document.getElementById('cancel-fieldcondition-edit-btn');
+  const fieldConditionFormTitle = document.getElementById('fieldcondition-form-title');
+
+  function resetFieldConditionForm(){
+    document.getElementById('fc-name').value = '';
+    document.getElementById('fc-desc').value = '';
+    editingFieldConditionId = null;
+    addFieldConditionBtn.textContent = '+';
+    fieldConditionFormTitle.textContent = 'Add a field condition';
+    cancelFieldConditionEditBtn.style.display = 'none';
+  }
+  function loadFieldConditionIntoForm(condition){
+    editingFieldConditionId = condition.id;
+    document.getElementById('fc-name').value = condition.name || '';
+    document.getElementById('fc-desc').value = condition.desc || '';
+    addFieldConditionBtn.textContent = '✓';
+    fieldConditionFormTitle.textContent = `Editing ${condition.name}`;
+    cancelFieldConditionEditBtn.style.display = 'inline-block';
+    document.getElementById('fc-name').focus();
+  }
+  cancelFieldConditionEditBtn.addEventListener('click', resetFieldConditionForm);
+
+  addFieldConditionBtn.addEventListener('click', () => {
+    const name = document.getElementById('fc-name').value.trim();
+    const desc = document.getElementById('fc-desc').value.trim();
+    if(!name){ document.getElementById('fc-name').focus(); return; }
+
+    const wasEditingId = editingFieldConditionId;
+    if(editingFieldConditionId){
+      const idx = fieldConditions.findIndex(c => c.id === editingFieldConditionId);
+      if(idx !== -1) fieldConditions[idx] = { ...fieldConditions[idx], name, desc };
+    } else {
+      fieldConditions.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, desc });
+    }
+    resetFieldConditionForm();
+    renderFieldConditions(); renderSkills(); renderTalents(); saveShared();
+    if(wasEditingId){
+      setTimeout(() => {
+        const target = document.querySelector(`tr[data-fieldcondition-id="${wasEditingId}"]`);
+        if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+      }, 150);
+    }
+  });
+
+  function renderFieldConditions(){
+    const tbody = document.getElementById('fieldcondition-body');
+    const emptyState = document.getElementById('fieldcondition-empty-state');
+    const countTag = document.getElementById('fieldcondition-count-tag');
+    countTag.textContent = `${fieldConditions.length} condition${fieldConditions.length === 1 ? '' : 's'}`;
+
+    const sortedFieldConditions = [...fieldConditions].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    tbody.innerHTML = '';
+    if(sortedFieldConditions.length === 0){
+      emptyState.style.display = 'block';
+    } else {
+      emptyState.style.display = 'none';
+      sortedFieldConditions.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.dataset.fieldconditionId = c.id;
+        tr.innerHTML = `
+          <td>${escapeHtml(c.name)}</td>
+          <td class="desc-cell">${escapeHtml(c.desc) || '—'}</td>
+          <td style="white-space:nowrap;">
+            <button class="del-btn edit-fieldcondition-btn" data-id="${c.id}" title="Edit">✎</button>
+            <button class="del-btn" data-id="${c.id}" title="Remove">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    tbody.querySelectorAll('.del-btn:not(.edit-fieldcondition-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const condition = fieldConditions.find(c => c.id === btn.dataset.id);
+        if(!confirm(`Delete field condition "${condition ? condition.name : ''}"? This can't be undone.`)) return;
+        fieldConditions = fieldConditions.filter(c => c.id !== btn.dataset.id);
+        if(editingFieldConditionId === btn.dataset.id) resetFieldConditionForm();
+        renderFieldConditions(); renderSkills(); renderTalents(); saveShared();
+      });
+    });
+    tbody.querySelectorAll('.edit-fieldcondition-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const condition = fieldConditions.find(c => c.id === btn.dataset.id);
+        if(condition) loadFieldConditionIntoForm(condition);
+      });
+    });
+  }
+
+  /* ---- highlight status + field condition mentions in description text ---- */
   function highlightConditions(text){
     if(!text) return '';
     let escaped = escapeHtml(text);
-    const sorted = [...conditions].filter(c => c.name).sort((a,b) => b.name.length - a.name.length);
-    sorted.forEach(cond => {
+    const combined = [
+      ...conditions.filter(c => c.name).map(c => ({ ...c, kind: 'status' })),
+      ...fieldConditions.filter(c => c.name).map(c => ({ ...c, kind: 'field' }))
+    ].sort((a,b) => b.name.length - a.name.length);
+
+    combined.forEach(cond => {
       const escName = escapeHtml(cond.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const re = new RegExp(`\\b(${escName})\\b`, 'gi');
       escaped = escaped.replace(re, (match) => {
-        if(match.includes('</span>') || match.includes('data-status')) return match;
+        if(match.includes('data-status') || match.includes('data-field')) return match;
+        if(cond.kind === 'field') return `<span class="field-hl" data-field="${cond.id}">${match}</span>`;
         return `<span class="status-hl" data-status="${cond.id}">${match}</span>`;
       });
     });
     return escaped;
   }
 
-  /* ---- status condition popup modal ---- */
+  /* ---- condition popup modal (shared by status + field conditions) ---- */
   const statusModalOverlay = document.getElementById('status-modal-overlay');
   const statusModalTitle = document.getElementById('status-modal-title');
   const statusModalDesc = document.getElementById('status-modal-desc');
   const statusModalClose = document.getElementById('status-modal-close');
 
-  function openStatusModal(conditionId){
-    const cond = conditions.find(c => c.id === conditionId);
+  function openConditionModal(cond, kind){
     if(!cond) return;
     statusModalTitle.textContent = cond.name;
+    statusModalTitle.style.color = kind === 'field' ? '#5bb3d9' : 'var(--accent)';
     statusModalDesc.textContent = cond.desc || 'No description yet.';
     statusModalOverlay.classList.add('open');
   }
@@ -1835,8 +1989,13 @@
     if(e.target === statusModalOverlay) closeStatusModal();
   });
   document.addEventListener('click', e => {
-    const hl = e.target.closest('.status-hl');
-    if(hl) openStatusModal(hl.dataset.status);
+    const shl = e.target.closest('.status-hl');
+    const fhl = e.target.closest('.field-hl');
+    if(shl){
+      openConditionModal(conditions.find(c => c.id === shl.dataset.status), 'status');
+    } else if(fhl){
+      openConditionModal(fieldConditions.find(c => c.id === fhl.dataset.field), 'field');
+    }
   });
 
   const OP_FIELDS = ['m-preascension', 'm-ascension1', 'm-ascension2', 'm-ascension3'];
