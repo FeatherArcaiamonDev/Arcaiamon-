@@ -717,6 +717,7 @@
 <header>
   <h1>Arcaiamon Dex</h1>
   <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
+  <button class="wide-btn secondary" id="export-btn" style="margin-top:4px;">Export as .txt</button>
 </header>
 
 <div class="tabs">
@@ -2577,6 +2578,118 @@
       });
     });
   }
+
+  /* ============ EXPORT TO TXT ============ */
+  function buildExportText(){
+    const lines = [];
+    const rule = '='.repeat(60);
+
+    lines.push(rule);
+    lines.push('ARCAIAMON DEX EXPORT');
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+    lines.push(rule);
+    lines.push('');
+
+    // SKILLS
+    lines.push(`SKILLS (${skills.length})`);
+    lines.push('-'.repeat(60));
+    const skillsSorted = [...skills].sort((a,b) => (a.type || '').localeCompare(b.type || '') || (a.name || '').localeCompare(b.name || ''));
+    skillsSorted.forEach(s => {
+      lines.push(`${s.name}  [${s.type} / ${s.category}]  Tier ${s.tier || 1}`);
+      const statBits = [];
+      if(s.power !== '' && s.power !== undefined) statBits.push(`Power ${s.power}`);
+      if(s.accuracy !== '' && s.accuracy !== undefined) statBits.push(`Accuracy ${s.accuracy}%`);
+      if(statBits.length) lines.push(`  ${statBits.join(', ')}`);
+      if(s.desc) lines.push(`  Effect: ${s.desc}`);
+      lines.push('');
+    });
+
+    // TALENTS
+    lines.push(rule);
+    lines.push(`TALENTS (${talents.length})`);
+    lines.push('-'.repeat(60));
+    [...talents].sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(t => {
+      lines.push(`${t.name}${t.desc ? ' — ' + t.desc : ''}`);
+    });
+    lines.push('');
+
+    // ITEMS
+    lines.push(rule);
+    lines.push(`ITEMS (${items.length})`);
+    lines.push('-'.repeat(60));
+    [...items].sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(i => {
+      lines.push(`${i.name}  [${i.category}]${i.desc ? ' — ' + i.desc : ''}`);
+    });
+    lines.push('');
+
+    // STATUS CONDITIONS
+    lines.push(rule);
+    lines.push(`STATUS CONDITIONS (${conditions.length})`);
+    lines.push('-'.repeat(60));
+    [...conditions].sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(c => {
+      lines.push(`${c.name}${c.desc ? ' — ' + c.desc : ''}`);
+    });
+    lines.push('');
+
+    // FIELD CONDITIONS
+    lines.push(rule);
+    lines.push(`FIELD CONDITIONS (${fieldConditions.length})`);
+    lines.push('-'.repeat(60));
+    [...fieldConditions].sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(c => {
+      lines.push(`${c.name}${c.desc ? ' — ' + c.desc : ''}`);
+    });
+    lines.push('');
+
+    // ARCAIAMON
+    lines.push(rule);
+    lines.push(`ARCAIAMON (${mons.length})`);
+    lines.push('-'.repeat(60));
+    const monsSorted = [...mons].sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
+    monsSorted.forEach(m => {
+      const statSum = statSumOf(m);
+      const types = [m.type1, m.type2].filter(Boolean).join(' / ') || 'None';
+      lines.push(`#${m.order ?? '—'}  ${m.name}  [${types}]`);
+      lines.push(`  Stats — HP ${m.stats?.hp || 0}, P-ATK ${m.stats?.patk || 0}, M-ATK ${m.stats?.matk || 0}, P-DEF ${m.stats?.pdef || 0}, M-DEF ${m.stats?.mdef || 0}, AGI ${m.stats?.agi || 0}  (Total: ${statSum})`);
+
+      const talentNames = (m.talentIds || []).map(id => talents.find(t => t.id === id)?.name).filter(Boolean);
+      lines.push(`  Talents: ${talentNames.length ? talentNames.join(', ') : 'None'}`);
+
+      const skillNames = (m.skillIds || []).map(id => skills.find(s => s.id === id)?.name).filter(Boolean);
+      lines.push(`  Movepool: ${skillNames.length ? skillNames.join(', ') : 'None'}`);
+
+      const preMon = m.preAscensionId ? mons.find(mm => mm.id === m.preAscensionId) : null;
+      lines.push(`  Pre-Ascension: ${preMon ? preMon.name : 'None'}`);
+
+      const ascendLines = (m.ascensions || []).map(a => {
+        const target = mons.find(mm => mm.id === a.id);
+        if(!target) return null;
+        return `${target.name}${a.method ? ' (' + a.method + ')' : ''}`;
+      }).filter(Boolean);
+      lines.push(`  Ascensions: ${ascendLines.length ? ascendLines.join('; ') : 'None'}`);
+
+      if(m.notes) lines.push(`  Notes: ${m.notes}`);
+      lines.push('');
+    });
+
+    lines.push(rule);
+    lines.push('END OF EXPORT');
+    lines.push(rule);
+
+    return lines.join('\n');
+  }
+
+  document.getElementById('export-btn').addEventListener('click', () => {
+    const text = buildExportText();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `arcaiamon-dex-export-${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 </script>
 </body>
 </html>
