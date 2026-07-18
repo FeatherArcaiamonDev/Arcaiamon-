@@ -244,6 +244,13 @@
     .add-btn{ grid-column: 1 / -1; width:100%; height:38px; }
   }
 
+  .form-grid-3col{ grid-template-columns: 1fr 2fr auto; }
+  .form-grid-4col{ grid-template-columns: 1.4fr 1fr 2fr auto; }
+  @media (max-width: 760px){
+    .form-grid-3col, .form-grid-4col{ grid-template-columns: 1fr; }
+    .form-grid-3col .add-btn, .form-grid-4col .add-btn{ width:100%; height:38px; }
+  }
+
   /* Lock screen */
   #lock-screen{
     position:fixed;
@@ -826,7 +833,7 @@
   <div id="panel-talents" style="display:none;">
     <div class="panel">
       <h2 id="talent-form-title">Add a talent</h2>
-      <div class="form-grid" style="grid-template-columns: 1fr 2fr auto;">
+      <div class="form-grid form-grid-3col">
         <div class="field">
           <label for="t-name">Name</label>
           <input id="t-name" type="text" placeholder="e.g. Thick Hide">
@@ -1057,7 +1064,7 @@
   <div id="panel-items" style="display:none;">
     <div class="panel">
       <h2 id="item-form-title">Add an item</h2>
-      <div class="form-grid" style="grid-template-columns: 1.4fr 1fr 2fr auto;">
+      <div class="form-grid form-grid-4col">
         <div class="field">
           <label for="i-name">Name</label>
           <input id="i-name" type="text" placeholder="e.g. Ember Charm">
@@ -1106,7 +1113,7 @@
   <div id="panel-conditions" style="display:none;">
     <div class="panel">
       <h2 id="condition-form-title">Add a status condition</h2>
-      <div class="form-grid" style="grid-template-columns: 1fr 2fr auto;">
+      <div class="form-grid form-grid-3col">
         <div class="field">
           <label for="c-name">Name</label>
           <input id="c-name" type="text" placeholder="e.g. Poisoned">
@@ -1145,7 +1152,7 @@
   <div id="panel-fieldconditions" style="display:none;">
     <div class="panel">
       <h2 id="fieldcondition-form-title">Add a field condition</h2>
-      <div class="form-grid" style="grid-template-columns: 1fr 2fr auto;">
+      <div class="form-grid form-grid-3col">
         <div class="field">
           <label for="fc-name">Name</label>
           <input id="fc-name" type="text" placeholder="e.g. Rain">
