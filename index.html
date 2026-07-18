@@ -714,10 +714,28 @@
   </div>
 </div>
 
+<div id="import-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:22px; max-width:640px; width:100%; max-height:85vh; display:flex; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:6px;">
+      <h3 style="margin:0; font-family:'Cinzel', serif; color:var(--accent);">Import from exported .txt</h3>
+      <button id="import-modal-close" style="background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer;">✕</button>
+    </div>
+    <p style="margin:0 0 12px; font-size:0.8rem; color:var(--text-dim);">Upload or paste a file exported from this site (edited or not). Matching entries are updated by name; anything new is added. Nothing is deleted.</p>
+    <input type="file" id="import-file-upload" accept=".txt,text/plain" style="margin-bottom:10px;">
+    <textarea id="import-textarea" placeholder="…or paste exported text here" style="flex:1; min-height:240px; resize:vertical; font-family:monospace; font-size:0.78rem;"></textarea>
+    <div id="import-status" style="font-size:0.8rem; color:var(--text-dim); margin-top:10px; white-space:pre-wrap;"></div>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="wide-btn" id="run-import-btn">Parse &amp; Import</button>
+      <button class="wide-btn secondary" id="cancel-import-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <h1>Arcaiamon Dex</h1>
   <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
   <button class="wide-btn secondary" id="export-btn" style="margin-top:4px;">Export as .txt</button>
+  <button class="wide-btn secondary" id="open-import-btn" style="margin-top:4px;">Import from .txt</button>
 </header>
 
 <div class="tabs">
@@ -2699,6 +2717,315 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
+
+  /* ============ IMPORT FROM EXPORTED TXT ============ */
+  const importModalOverlay = document.getElementById('import-modal-overlay');
+  const importTextarea = document.getElementById('import-textarea');
+  const importFileUpload = document.getElementById('import-file-upload');
+  const importStatusEl = document.getElementById('import-status');
+  const runImportBtn = document.getElementById('run-import-btn');
+
+  document.getElementById('open-import-btn').addEventListener('click', () => {
+    importModalOverlay.style.display = 'flex';
+    importStatusEl.textContent = '';
+  });
+  document.getElementById('import-modal-close').addEventListener('click', () => {
+    importModalOverlay.style.display = 'none';
+  });
+  document.getElementById('cancel-import-btn').addEventListener('click', () => {
+    importModalOverlay.style.display = 'none';
+  });
+  importModalOverlay.addEventListener('click', e => {
+    if(e.target === importModalOverlay) importModalOverlay.style.display = 'none';
+  });
+  importFileUpload.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => { importTextarea.value = evt.target.result; };
+    reader.readAsText(file);
+  });
+
+  function normName(s){ return (s || '').trim().toLowerCase(); }
+
+  function upsertByName(list, entry){
+    const idx = list.findIndex(x => normName(x.name) === normName(entry.name));
+    if(idx !== -1){
+      list[idx] = { ...list[idx], ...entry, id: list[idx].id };
+      return { created: false };
+    } else {
+      list.push({ ...entry, id: Date.now().toString() + Math.random().toString(36).slice(2,8) });
+      return { created: true };
+    }
+  }
+
+  function splitSection(text){
+    return text.split(/\r?\n=+\r?\n/).map(s => s.trim()).filter(Boolean);
+  }
+
+  function parseSimpleList(body){
+    // "Name — Description" lines, one per line
+    return body.split('\n').map(l => l.trim()).filter(Boolean).filter(l => !/^(TALENTS|ITEMS|STATUS CONDITIONS|FIELD CONDITIONS)\s*\(/.test(l) && !/^-{5,}$/.test(l)).map(line => {
+      const idx = line.indexOf('—');
+      if(idx === -1) return { name: line.trim(), desc: '' };
+      return { name: line.slice(0, idx).trim(), desc: line.slice(idx + 1).trim() };
+    }).filter(e => e.name);
+  }
+
+  function parseSkillsSection(body){
+    const lines = body.split('\n');
+    // drop header + dash line
+    const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
+    const content = lines.slice(startIdx + 1).join('\n');
+    const blocks = content.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    const out = [];
+    blocks.forEach(block => {
+      const bLines = block.split('\n');
+      const header = bLines[0].trim();
+      const m = header.match(/^(.+?)\s{2,}\[(.+?)\s*\/\s*(.+?)\]\s{2,}Tier\s+(\d+)$/);
+      if(!m) return;
+      const name = m[1].trim();
+      const type = m[2].trim();
+      const category = m[3].trim();
+      const tier = Number(m[4]);
+      let power = '';
+      let accuracy = '';
+      let desc = '';
+      for(let i = 1; i < bLines.length; i++){
+        const line = bLines[i].trim();
+        const both = line.match(/^Power\s+(\d+),\s*Accuracy\s+(\d+)%$/);
+        const pOnly = line.match(/^Power\s+(\d+)$/);
+        const aOnly = line.match(/^Accuracy\s+(\d+)%$/);
+        const eff = line.match(/^Effect:\s*(.*)$/);
+        if(both){ power = Number(both[1]); accuracy = Number(both[2]); }
+        else if(pOnly){ power = Number(pOnly[1]); }
+        else if(aOnly){ accuracy = Number(aOnly[1]); }
+        else if(eff){ desc = eff[1]; }
+      }
+      out.push({ name, type, category, tier, power, accuracy, desc });
+    });
+    return out;
+  }
+
+  function parseItemsSection(body){
+    const lines = body.split('\n');
+    const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
+    const content = lines.slice(startIdx + 1).join('\n');
+    return content.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const m = line.match(/^(.+?)\s{2,}\[(.+?)\]\s*(?:—\s*(.*))?$/);
+      if(!m) return null;
+      return { name: m[1].trim(), category: m[2].trim(), desc: (m[3] || '').trim() };
+    }).filter(Boolean);
+  }
+
+  function parseNameDescSection(body){
+    const lines = body.split('\n');
+    const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
+    const content = lines.slice(startIdx + 1).join('\n');
+    return content.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const idx = line.indexOf('—');
+      if(idx === -1) return { name: line, desc: '' };
+      return { name: line.slice(0, idx).trim(), desc: line.slice(idx + 1).trim() };
+    }).filter(e => e.name);
+  }
+
+  function parseMonsSection(body){
+    const lines = body.split('\n');
+    const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
+    const content = lines.slice(startIdx + 1).join('\n');
+    const blocks = content.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    const out = [];
+    blocks.forEach(block => {
+      const bLines = block.split('\n').map(l => l.trim());
+      const header = bLines[0];
+      const hm = header.match(/^#(\S+)\s+(.+?)\s+\[(.*?)\]$/);
+      if(!hm) return;
+      const order = Number(hm[1]) || null;
+      const name = hm[2].trim();
+      const typesRaw = hm[3].trim();
+      const types = typesRaw.split('/').map(s => s.trim()).filter(s => s && s.toLowerCase() !== 'none');
+      const type1 = types[0] || '';
+      const type2 = types[1] || '';
+
+      let stats = { hp:0, patk:0, matk:0, pdef:0, mdef:0, agi:0 };
+      let talentNames = [];
+      let skillNames = [];
+      let preAscensionName = '';
+      let ascensionEntries = [];
+      let notes = '';
+
+      bLines.slice(1).forEach(line => {
+        const sm = line.match(/^Stats\s*—\s*HP\s+(\d+),\s*P-ATK\s+(\d+),\s*M-ATK\s+(\d+),\s*P-DEF\s+(\d+),\s*M-DEF\s+(\d+),\s*AGI\s+(\d+)/);
+        const tm = line.match(/^Talents:\s*(.*)$/);
+        const mm = line.match(/^Movepool:\s*(.*)$/);
+        const pm = line.match(/^Pre-Ascension:\s*(.*)$/);
+        const am = line.match(/^Ascensions:\s*(.*)$/);
+        const nm = line.match(/^Notes:\s*(.*)$/);
+        if(sm){
+          stats = { hp:Number(sm[1]), patk:Number(sm[2]), matk:Number(sm[3]), pdef:Number(sm[4]), mdef:Number(sm[5]), agi:Number(sm[6]) };
+        } else if(tm){
+          const v = tm[1].trim();
+          talentNames = v.toLowerCase() === 'none' || !v ? [] : v.split(',').map(s => s.trim()).filter(Boolean);
+        } else if(mm){
+          const v = mm[1].trim();
+          skillNames = v.toLowerCase() === 'none' || !v ? [] : v.split(',').map(s => s.trim()).filter(Boolean);
+        } else if(pm){
+          const v = pm[1].trim();
+          preAscensionName = v.toLowerCase() === 'none' ? '' : v;
+        } else if(am){
+          const v = am[1].trim();
+          if(v.toLowerCase() !== 'none' && v){
+            ascensionEntries = v.split(';').map(s => s.trim()).filter(Boolean).map(entry => {
+              const em = entry.match(/^(.+?)\s*\((.*)\)$/);
+              if(em) return { name: em[1].trim(), method: em[2].trim() };
+              return { name: entry.trim(), method: '' };
+            });
+          }
+        } else if(nm){
+          notes = nm[1];
+        }
+      });
+
+      out.push({ order, name, type1, type2, stats, talentNames, skillNames, preAscensionName, ascensionEntries, notes });
+    });
+    return out;
+  }
+
+  async function runImport(){
+    const raw = importTextarea.value.trim();
+    if(!raw){
+      importStatusEl.textContent = 'Paste or upload some exported text first.';
+      return;
+    }
+    runImportBtn.disabled = true;
+    importStatusEl.textContent = 'Parsing…';
+
+    const sections = splitSection(raw);
+    const counts = { skills:{added:0,updated:0}, talents:{added:0,updated:0}, items:{added:0,updated:0}, conditions:{added:0,updated:0}, fieldConditions:{added:0,updated:0}, mons:{added:0,updated:0} };
+
+    let parsedMons = [];
+
+    sections.forEach(sec => {
+      const firstLine = sec.split('\n')[0].trim();
+      if(/^SKILLS\s*\(/.test(firstLine)){
+        parseSkillsSection(sec).forEach(entry => {
+          const r = upsertByName(skills, entry);
+          counts.skills[r.created ? 'added' : 'updated']++;
+        });
+      } else if(/^TALENTS\s*\(/.test(firstLine)){
+        parseNameDescSection(sec).forEach(entry => {
+          const r = upsertByName(talents, entry);
+          counts.talents[r.created ? 'added' : 'updated']++;
+        });
+      } else if(/^ITEMS\s*\(/.test(firstLine)){
+        parseItemsSection(sec).forEach(entry => {
+          const r = upsertByName(items, entry);
+          counts.items[r.created ? 'added' : 'updated']++;
+        });
+      } else if(/^STATUS CONDITIONS\s*\(/.test(firstLine)){
+        parseNameDescSection(sec).forEach(entry => {
+          const r = upsertByName(conditions, entry);
+          counts.conditions[r.created ? 'added' : 'updated']++;
+        });
+      } else if(/^FIELD CONDITIONS\s*\(/.test(firstLine)){
+        parseNameDescSection(sec).forEach(entry => {
+          const r = upsertByName(fieldConditions, entry);
+          counts.fieldConditions[r.created ? 'added' : 'updated']++;
+        });
+      } else if(/^ARCAIAMON\s*\(/.test(firstLine)){
+        parsedMons = parseMonsSection(sec);
+      }
+    });
+
+    // Persist skills/talents/items/conditions/fieldConditions in one shared write
+    importStatusEl.textContent = 'Saving skills, talents, items, and conditions…';
+    try{
+      await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions, fieldConditions });
+    }catch(err){
+      console.error(err);
+      importStatusEl.textContent = 'Failed to save skills/talents/items/conditions. Check connection and try again.';
+      runImportBtn.disabled = false;
+      return;
+    }
+
+    // Pass 1: upsert mons by name (basic fields only, resolving skill/talent names now)
+    importStatusEl.textContent = `Saving Arcaiamon (0/${parsedMons.length})…`;
+    let done = 0;
+    for(const pm of parsedMons){
+      const skillIds = pm.skillNames.map(n => skills.find(s => normName(s.name) === normName(n))?.id).filter(Boolean);
+      const talentIds = pm.talentNames.map(n => talents.find(t => normName(t.name) === normName(n))?.id).filter(Boolean).slice(0,3);
+
+      const baseData = {
+        name: pm.name,
+        stats: pm.stats,
+        type1: pm.type1,
+        type2: pm.type2,
+        order: pm.order,
+        notes: pm.notes,
+        skillIds,
+        talentIds
+      };
+
+      const existing = mons.find(m => normName(m.name) === normName(pm.name));
+      if(existing){
+        try{
+          await updateDoc(doc(db, MONS_COLLECTION, existing.id), baseData);
+          Object.assign(existing, baseData);
+          counts.mons.updated++;
+        }catch(err){ console.error(err); }
+      } else {
+        try{
+          const ref = await addDoc(collection(db, MONS_COLLECTION), { ...baseData, icon: null, preAscensionId: '', ascensions: [] });
+          mons.push({ id: ref.id, ...baseData, icon: null, preAscensionId: '', ascensions: [] });
+          counts.mons.added++;
+        }catch(err){ console.error(err); }
+      }
+      done++;
+      importStatusEl.textContent = `Saving Arcaiamon (${done}/${parsedMons.length})…`;
+    }
+
+    // Pass 2: resolve pre-ascension / ascension name references now that all mons exist
+    importStatusEl.textContent = 'Linking ascensions…';
+    for(const pm of parsedMons){
+      const monRecord = mons.find(m => normName(m.name) === normName(pm.name));
+      if(!monRecord) continue;
+
+      const preAscensionId = pm.preAscensionName
+        ? (mons.find(m => normName(m.name) === normName(pm.preAscensionName))?.id || '')
+        : '';
+      const ascensions = pm.ascensionEntries.map(a => {
+        const target = mons.find(m => normName(m.name) === normName(a.name));
+        return target ? { id: target.id, method: a.method } : null;
+      }).filter(Boolean);
+
+      try{
+        await updateDoc(doc(db, MONS_COLLECTION, monRecord.id), { preAscensionId, ascensions });
+        monRecord.preAscensionId = preAscensionId;
+        monRecord.ascensions = ascensions;
+      }catch(err){ console.error(err); }
+    }
+
+    renderSkills();
+    renderTalents();
+    renderItems();
+    renderConditions();
+    renderFieldConditions();
+    renderSkillPicker();
+    renderTalentSelects();
+    renderMons();
+
+    importStatusEl.textContent =
+      `Done!\n` +
+      `Skills: +${counts.skills.added} / ~${counts.skills.updated}\n` +
+      `Talents: +${counts.talents.added} / ~${counts.talents.updated}\n` +
+      `Items: +${counts.items.added} / ~${counts.items.updated}\n` +
+      `Status Conditions: +${counts.conditions.added} / ~${counts.conditions.updated}\n` +
+      `Field Conditions: +${counts.fieldConditions.added} / ~${counts.fieldConditions.updated}\n` +
+      `Arcaiamon: +${counts.mons.added} / ~${counts.mons.updated}`;
+    runImportBtn.disabled = false;
+  }
+
+  runImportBtn.addEventListener('click', runImport);
 </script>
 </body>
 </html>
