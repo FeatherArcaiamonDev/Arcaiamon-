@@ -1076,6 +1076,7 @@
             <option value="Held Item">Held Item</option>
             <option value="Consumable">Consumable</option>
             <option value="Held/Consumable Item">Held/Consumable Item</option>
+            <option value="Skill Stone">Skill Stone</option>
           </select>
         </div>
         <div class="field">
@@ -1092,6 +1093,7 @@
         <span>Item list</span>
         <span class="count-tag" id="item-count-tag">0 items</span>
       </h2>
+      <div class="filter-row" id="item-category-filter-row" style="margin-bottom:16px;"></div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -1754,17 +1756,51 @@
     }
   });
 
+  /* ---- item category filter chips ---- */
+  const ITEM_CATEGORY_FILTERS = ['Skill Stone', 'Consumable', 'Held Item', 'Key Item', 'Held/Consumable Item'];
+  const ITEM_CATEGORY_LABELS = { 'Skill Stone': 'Skill Stones', 'Consumable': 'Consumables', 'Held Item': 'Held Items', 'Key Item': 'Key Items', 'Held/Consumable Item': 'Held/Consumable' };
+  let activeItemCategoryFilter = null;
+
+  const itemCategoryFilterRow = document.getElementById('item-category-filter-row');
+  function buildItemCategoryChips(){
+    itemCategoryFilterRow.innerHTML = '';
+    const allChip = document.createElement('span');
+    allChip.className = 'type-chip' + (activeItemCategoryFilter === null ? ' active' : '');
+    allChip.textContent = 'All';
+    if(activeItemCategoryFilter === null){ allChip.style.background = 'var(--accent)'; allChip.style.color = '#12141c'; }
+    allChip.addEventListener('click', () => { activeItemCategoryFilter = null; renderItems(); });
+    itemCategoryFilterRow.appendChild(allChip);
+
+    ITEM_CATEGORY_FILTERS.forEach(cat => {
+      const chip = document.createElement('span');
+      const isActive = activeItemCategoryFilter === cat;
+      chip.className = 'type-chip' + (isActive ? ' active' : '');
+      chip.textContent = ITEM_CATEGORY_LABELS[cat] || cat;
+      if(isActive){ chip.style.background = 'var(--accent)'; chip.style.color = '#12141c'; }
+      chip.addEventListener('click', () => {
+        activeItemCategoryFilter = activeItemCategoryFilter === cat ? null : cat;
+        renderItems();
+      });
+      itemCategoryFilterRow.appendChild(chip);
+    });
+  }
+
   function renderItems(){
+    buildItemCategoryChips();
     const tbody = document.getElementById('item-body');
     const emptyState = document.getElementById('item-empty-state');
     const countTag = document.getElementById('item-count-tag');
     countTag.textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
 
-    const sortedItems = [...items].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    let sortedItems = [...items].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    if(activeItemCategoryFilter){
+      sortedItems = sortedItems.filter(i => i.category === activeItemCategoryFilter);
+    }
 
     tbody.innerHTML = '';
     if(sortedItems.length === 0){
       emptyState.style.display = 'block';
+      emptyState.textContent = items.length === 0 ? 'No items yet. Add your first one above.' : 'No items match this filter.';
     } else {
       emptyState.style.display = 'none';
       sortedItems.forEach(i => {
