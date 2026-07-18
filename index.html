@@ -1757,20 +1757,19 @@
   });
 
   /* ---- item category filter chips ---- */
-  const ITEM_CATEGORY_FILTERS = ['Skill Stone', 'Consumable', 'Held Item', 'Key Item', 'Held/Consumable Item'];
-  const ITEM_CATEGORY_LABELS = { 'Skill Stone': 'Skill Stones', 'Consumable': 'Consumables', 'Held Item': 'Held Items', 'Key Item': 'Key Items', 'Held/Consumable Item': 'Held/Consumable' };
+  const ITEM_CATEGORY_FILTERS = ['Skill Stone', 'Consumable', 'Held Item', 'Key Item'];
+  const ITEM_CATEGORY_LABELS = { 'Skill Stone': 'Skill Stones', 'Consumable': 'Consumables', 'Held Item': 'Held Items', 'Key Item': 'Key Items' };
   let activeItemCategoryFilter = null;
+
+  function itemMatchesFilter(item, filterCat){
+    if(item.category === filterCat) return true;
+    if(item.category === 'Held/Consumable Item' && (filterCat === 'Held Item' || filterCat === 'Consumable')) return true;
+    return false;
+  }
 
   const itemCategoryFilterRow = document.getElementById('item-category-filter-row');
   function buildItemCategoryChips(){
     itemCategoryFilterRow.innerHTML = '';
-    const allChip = document.createElement('span');
-    allChip.className = 'type-chip' + (activeItemCategoryFilter === null ? ' active' : '');
-    allChip.textContent = 'All';
-    if(activeItemCategoryFilter === null){ allChip.style.background = 'var(--accent)'; allChip.style.color = '#12141c'; }
-    allChip.addEventListener('click', () => { activeItemCategoryFilter = null; renderItems(); });
-    itemCategoryFilterRow.appendChild(allChip);
-
     ITEM_CATEGORY_FILTERS.forEach(cat => {
       const chip = document.createElement('span');
       const isActive = activeItemCategoryFilter === cat;
@@ -1794,7 +1793,7 @@
 
     let sortedItems = [...items].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
     if(activeItemCategoryFilter){
-      sortedItems = sortedItems.filter(i => i.category === activeItemCategoryFilter);
+      sortedItems = sortedItems.filter(i => itemMatchesFilter(i, activeItemCategoryFilter));
     }
 
     tbody.innerHTML = '';
