@@ -308,6 +308,18 @@
 
   #app{ display:none; }
 
+  body.viewer-mode .admin-only{ display:none !important; }
+  .viewer-badge{
+    display:none;
+    font-size:0.72rem;
+    color:var(--text-dim);
+    border:1px solid var(--line);
+    padding:2px 8px;
+    border-radius:20px;
+    margin-left:6px;
+  }
+  body.viewer-mode .viewer-badge{ display:inline-block; }
+
   /* Mon form */
   .mon-form-grid{
     display:grid;
@@ -702,8 +714,9 @@
 <div id="lock-screen">
   <div class="lock-box">
     <h1>Arcaiamon Dex</h1>
-    <p>Enter password to access the dex</p>
-    <input id="lock-input" type="password" placeholder="Password" autocomplete="off">
+    <p>Enter a password to access the dex</p>
+    <input id="lock-input-admin" type="password" placeholder="Admin password (full access)" autocomplete="off">
+    <input id="lock-input-viewer" type="password" placeholder="Viewer password (view only)" autocomplete="off">
     <button class="lock-btn" id="lock-btn">Unlock</button>
     <div class="lock-error" id="lock-error"></div>
   </div>
@@ -740,9 +753,9 @@
 
 <header>
   <h1>Arcaiamon Dex</h1>
-  <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span></p>
+  <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span><span class="viewer-badge">View only</span></p>
   <button class="wide-btn secondary" id="export-btn" style="margin-top:4px;">Export as .txt</button>
-  <button class="wide-btn secondary" id="open-import-btn" style="margin-top:4px;">Import from .txt</button>
+  <button class="wide-btn secondary admin-only" id="open-import-btn" style="margin-top:4px;">Import from .txt</button>
 </header>
 
 <div class="tabs">
@@ -758,7 +771,7 @@
 
   <!-- SKILLS TAB -->
   <div id="panel-skills">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2 id="skill-form-title">Add a skill</h2>
       <div class="form-grid">
         <div class="field">
@@ -831,7 +844,7 @@
 
   <!-- TALENTS TAB -->
   <div id="panel-talents" style="display:none;">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2 id="talent-form-title">Add a talent</h2>
       <div class="form-grid form-grid-3col">
         <div class="field">
@@ -870,7 +883,7 @@
 
   <!-- MONS TAB -->
   <div id="panel-mons" style="display:none;">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2 id="mon-form-title">Add an Arcaiamon</h2>
 
       <div class="icon-row">
@@ -1062,7 +1075,7 @@
 
   <!-- ITEMS TAB -->
   <div id="panel-items" style="display:none;">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2 id="item-form-title">Add an item</h2>
       <div class="form-grid form-grid-4col">
         <div class="field">
@@ -1113,7 +1126,7 @@
 
   <!-- STATUS CONDITIONS TAB -->
   <div id="panel-conditions" style="display:none;">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2 id="condition-form-title">Add a status condition</h2>
       <div class="form-grid form-grid-3col">
         <div class="field">
@@ -1152,7 +1165,7 @@
 
   <!-- FIELD CONDITIONS TAB -->
   <div id="panel-fieldconditions" style="display:none;">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2 id="fieldcondition-form-title">Add a field condition</h2>
       <div class="form-grid form-grid-3col">
         <div class="field">
@@ -1210,6 +1223,7 @@
   };
 
   const SITE_PASSWORD = "moves";
+  const VIEWER_PASSWORD = "Buzzball";
   const SKILLS_DOC = ["movedex", "shared"];
   const MONS_COLLECTION = "mons";
 
@@ -1325,26 +1339,36 @@
   /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
   const appEl = document.getElementById('app');
-  const lockInput = document.getElementById('lock-input');
+  const lockInputAdmin = document.getElementById('lock-input-admin');
+  const lockInputViewer = document.getElementById('lock-input-viewer');
   const lockBtn = document.getElementById('lock-btn');
   const lockError = document.getElementById('lock-error');
+  let isViewerMode = false;
 
   function tryUnlock(){
-    if(lockInput.value === SITE_PASSWORD){
+    if(lockInputAdmin.value === SITE_PASSWORD){
       sessionStorage.setItem('movedex-unlocked', 'yes');
-      unlockApp();
+      sessionStorage.setItem('movedex-mode', 'admin');
+      unlockApp('admin');
+    } else if(lockInputViewer.value === VIEWER_PASSWORD){
+      sessionStorage.setItem('movedex-unlocked', 'yes');
+      sessionStorage.setItem('movedex-mode', 'viewer');
+      unlockApp('viewer');
     } else {
       lockError.textContent = 'Incorrect password';
     }
   }
-  async function unlockApp(){
+  async function unlockApp(mode){
+    isViewerMode = mode === 'viewer';
+    document.body.classList.toggle('viewer-mode', isViewerMode);
     lockScreen.style.display = 'none';
     appEl.style.display = 'block';
     try{ await signInAnonymously(auth); }
     catch(err){ console.error(err); setSyncStatus('Sign-in failed'); }
   }
   lockBtn.addEventListener('click', tryUnlock);
-  lockInput.addEventListener('keydown', e => { if(e.key === 'Enter') tryUnlock(); });
+  lockInputAdmin.addEventListener('keydown', e => { if(e.key === 'Enter') tryUnlock(); });
+  lockInputViewer.addEventListener('keydown', e => { if(e.key === 'Enter') tryUnlock(); });
 
   onAuthStateChanged(auth, user => {
     if(user){
@@ -1352,7 +1376,9 @@
       listenMons();
     }
   });
-  if(sessionStorage.getItem('movedex-unlocked') === 'yes'){ unlockApp(); }
+  if(sessionStorage.getItem('movedex-unlocked') === 'yes'){
+    unlockApp(sessionStorage.getItem('movedex-mode') === 'admin' ? 'admin' : 'viewer');
+  }
 
   /* ============ SHARED DOC: SKILLS + TALENTS + ITEMS + CONDITIONS ============ */
   let skills = [];
@@ -1464,7 +1490,7 @@
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
           <td><span class="cat-badge">T${m.tier || 1}</span></td>
           <td class="desc-cell">${highlightConditions(m.desc) || '—'}</td>
-          <td style="white-space:nowrap;">
+          <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-skill-btn" data-id="${m.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${m.id}" title="Remove">✕</button>
           </td>
@@ -1669,7 +1695,7 @@
         tr.innerHTML = `
           <td>${escapeHtml(t.name)}</td>
           <td class="desc-cell">${highlightConditions(t.desc) || '—'}</td>
-          <td style="white-space:nowrap;">
+          <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-talent-btn" data-id="${t.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${t.id}" title="Remove">✕</button>
           </td>
@@ -1809,7 +1835,7 @@
           <td>${escapeHtml(i.name)}</td>
           <td><span class="cat-badge">${escapeHtml(i.category)}</span></td>
           <td class="desc-cell">${escapeHtml(i.desc) || '—'}</td>
-          <td style="white-space:nowrap;">
+          <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-item-btn" data-id="${i.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${i.id}" title="Remove">✕</button>
           </td>
@@ -1900,7 +1926,7 @@
         tr.innerHTML = `
           <td>${escapeHtml(c.name)}</td>
           <td class="desc-cell">${escapeHtml(c.desc) || '—'}</td>
-          <td style="white-space:nowrap;">
+          <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-condition-btn" data-id="${c.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${c.id}" title="Remove">✕</button>
           </td>
@@ -1991,7 +2017,7 @@
         tr.innerHTML = `
           <td>${escapeHtml(c.name)}</td>
           <td class="desc-cell">${escapeHtml(c.desc) || '—'}</td>
-          <td style="white-space:nowrap;">
+          <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-fieldcondition-btn" data-id="${c.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${c.id}" title="Remove">✕</button>
           </td>
@@ -2591,7 +2617,7 @@
       }
 
       card.innerHTML = `
-        <div class="mon-card-actions">
+        <div class="mon-card-actions admin-only">
           <button class="up-btn" data-idx="${idxInOrder}" title="Move up" ${idxInOrder <= 0 ? 'disabled' : ''}>▲</button>
           <button class="down-btn" data-idx="${idxInOrder}" title="Move down" ${idxInOrder >= orderSorted.length - 1 ? 'disabled' : ''}>▼</button>
           <button class="edit-btn" data-id="${mon.id}" title="Edit">✎</button>
