@@ -103,7 +103,7 @@
 
   .form-grid{
     display:grid;
-    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 1.6fr auto;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 1fr 1.6fr auto;
     gap:10px;
     align-items:end;
   }
@@ -808,6 +808,13 @@
           </select>
         </div>
         <div class="field">
+          <label for="f-stone">Skill Stone</label>
+          <label style="display:flex; align-items:center; gap:8px; padding:9px 10px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; cursor:pointer; height:38px; box-sizing:border-box;">
+            <input id="f-stone" type="checkbox" style="width:auto; accent-color:var(--accent);">
+            <span style="font-size:0.82rem; color:var(--text-dim);">Learnable by stone</span>
+          </label>
+        </div>
+        <div class="field">
           <label for="f-desc">Description / effect</label>
           <textarea id="f-desc" rows="2" placeholder="What it does" style="resize:vertical;"></textarea>
         </div>
@@ -831,6 +838,7 @@
               <th data-key="power">Power<span class="arrow"></span></th>
               <th data-key="accuracy">Accuracy<span class="arrow"></span></th>
               <th data-key="tier">Tier<span class="arrow"></span></th>
+              <th class="nosort">Stone</th>
               <th class="nosort">Description</th>
               <th class="nosort"></th>
             </tr>
@@ -1489,6 +1497,7 @@
           <td class="num-cell">${m.power === '' ? '—' : m.power}</td>
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
           <td><span class="cat-badge">T${m.tier || 1}</span></td>
+          <td>${m.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Yes</span>' : '<span style="color:var(--text-dim);">—</span>'}</td>
           <td class="desc-cell">${highlightConditions(m.desc) || '—'}</td>
           <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-skill-btn" data-id="${m.id}" title="Edit">✎</button>
@@ -1538,6 +1547,7 @@
     document.getElementById('f-type').selectedIndex = 0;
     document.getElementById('f-cat').selectedIndex = 0;
     document.getElementById('f-tier').value = '1';
+    document.getElementById('f-stone').checked = false;
     editingSkillId = null;
     addSkillBtn.textContent = '+';
     addSkillBtn.title = 'Add skill';
@@ -1552,6 +1562,7 @@
     document.getElementById('f-power').value = skill.power ?? '';
     document.getElementById('f-acc').value = skill.accuracy ?? '';
     document.getElementById('f-tier').value = String(skill.tier || 1);
+    document.getElementById('f-stone').checked = !!skill.stoneLearnable;
     document.getElementById('f-desc').value = skill.desc || '';
     addSkillBtn.textContent = '✓';
     addSkillBtn.title = 'Save changes';
@@ -1568,6 +1579,7 @@
     const power = document.getElementById('f-power').value;
     const accuracy = document.getElementById('f-acc').value;
     const tier = Number(document.getElementById('f-tier').value) || 1;
+    const stoneLearnable = document.getElementById('f-stone').checked;
     const desc = document.getElementById('f-desc').value.trim();
     if(!name){ document.getElementById('f-name').focus(); return; }
 
@@ -1577,14 +1589,14 @@
       if(idx !== -1){
         skills[idx] = { ...skills[idx], name, type, category,
           power: power === '' ? '' : Number(power),
-          accuracy: accuracy === '' ? '' : Number(accuracy), tier, desc };
+          accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc };
       }
     } else {
       skills.push({
         id: Date.now().toString() + Math.random().toString(36).slice(2,6),
         name, type, category,
         power: power === '' ? '' : Number(power),
-        accuracy: accuracy === '' ? '' : Number(accuracy), tier, desc
+        accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc
       });
     }
     resetSkillForm();
@@ -2695,6 +2707,7 @@
       if(s.power !== '' && s.power !== undefined) statBits.push(`Power ${s.power}`);
       if(s.accuracy !== '' && s.accuracy !== undefined) statBits.push(`Accuracy ${s.accuracy}%`);
       if(statBits.length) lines.push(`  ${statBits.join(', ')}`);
+      if(s.stoneLearnable) lines.push(`  Learnable by Skill Stone`);
       if(s.desc) lines.push(`  Effect: ${s.desc}`);
       lines.push('');
     });
@@ -2859,18 +2872,21 @@
       let power = '';
       let accuracy = '';
       let desc = '';
+      let stoneLearnable = false;
       for(let i = 1; i < bLines.length; i++){
         const line = bLines[i].trim();
         const both = line.match(/^Power\s+(\d+),\s*Accuracy\s+(\d+)%$/);
         const pOnly = line.match(/^Power\s+(\d+)$/);
         const aOnly = line.match(/^Accuracy\s+(\d+)%$/);
         const eff = line.match(/^Effect:\s*(.*)$/);
+        const stone = /^Learnable by Skill Stone$/i.test(line);
         if(both){ power = Number(both[1]); accuracy = Number(both[2]); }
         else if(pOnly){ power = Number(pOnly[1]); }
         else if(aOnly){ accuracy = Number(aOnly[1]); }
+        else if(stone){ stoneLearnable = true; }
         else if(eff){ desc = eff[1]; }
       }
-      out.push({ name, type, category, tier, power, accuracy, desc });
+      out.push({ name, type, category, tier, power, accuracy, stoneLearnable, desc });
     });
     return out;
   }
