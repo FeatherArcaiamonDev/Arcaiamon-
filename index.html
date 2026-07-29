@@ -828,6 +828,7 @@
         <span>Skill list</span>
         <span class="count-tag" id="count-tag">0 skills</span>
       </h2>
+      <input type="text" id="skill-search" placeholder="Search skills by name or description…" style="margin-bottom:16px; max-width:340px;">
       <div class="table-wrap">
         <table>
           <thead>
@@ -873,6 +874,7 @@
         <span>Talent list</span>
         <span class="count-tag" id="talent-count-tag">0 talents</span>
       </h2>
+      <input type="text" id="talent-search" placeholder="Search talents by name or description…" style="margin-bottom:16px; max-width:340px;">
       <div class="table-wrap">
         <table>
           <thead>
@@ -1114,6 +1116,7 @@
         <span>Item list</span>
         <span class="count-tag" id="item-count-tag">0 items</span>
       </h2>
+      <input type="text" id="item-search" placeholder="Search items by name or description…" style="margin-bottom:12px; max-width:340px;">
       <div class="filter-row" id="item-category-filter-row" style="margin-bottom:16px;"></div>
       <div class="table-wrap">
         <table>
@@ -1398,7 +1401,9 @@
   let sortDir = 1;
   let saveTimeout = null;
   let editingSkillId = null;
+  let skillSearchTerm = '';
   let editingTalentId = null;
+  let talentSearchTerm = '';
   let editingItemId = null;
   let editingConditionId = null;
   let editingFieldConditionId = null;
@@ -1482,9 +1487,21 @@
       });
     }
 
+    if(skillSearchTerm){
+      const term = skillSearchTerm.toLowerCase();
+      list = list.filter(s => (s.name || '').toLowerCase().includes(term) || (s.desc || '').toLowerCase().includes(term));
+      list.sort((a,b) => {
+        const aNameMatch = (a.name || '').toLowerCase().includes(term) ? 1 : 0;
+        const bNameMatch = (b.name || '').toLowerCase().includes(term) ? 1 : 0;
+        if(aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
+
     tbody.innerHTML = '';
     if(list.length === 0){
       emptyState.style.display = 'block';
+      emptyState.textContent = skillSearchTerm ? 'No skills match your search.' : 'No skills yet. Add your first one above.';
     } else {
       emptyState.style.display = 'none';
       list.forEach(m => {
@@ -1617,6 +1634,11 @@
     });
   });
 
+  document.getElementById('skill-search').addEventListener('input', e => {
+    skillSearchTerm = e.target.value.trim();
+    renderSkills();
+  });
+
   function renderSkillPicker(){
     const picker = document.getElementById('skill-picker');
     if(skills.length === 0){
@@ -1666,6 +1688,11 @@
   }
   cancelTalentEditBtn.addEventListener('click', resetTalentForm);
 
+  document.getElementById('talent-search').addEventListener('input', e => {
+    talentSearchTerm = e.target.value.trim();
+    renderTalents();
+  });
+
   addTalentBtn.addEventListener('click', () => {
     const name = document.getElementById('t-name').value.trim();
     const desc = document.getElementById('t-desc').value.trim();
@@ -1694,11 +1721,23 @@
     const countTag = document.getElementById('talent-count-tag');
     countTag.textContent = `${talents.length} talent${talents.length === 1 ? '' : 's'}`;
 
-    const sortedTalents = [...talents].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    let sortedTalents = [...talents].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    if(talentSearchTerm){
+      const term = talentSearchTerm.toLowerCase();
+      sortedTalents = sortedTalents.filter(t => (t.name || '').toLowerCase().includes(term) || (t.desc || '').toLowerCase().includes(term));
+      sortedTalents.sort((a,b) => {
+        const aNameMatch = (a.name || '').toLowerCase().includes(term) ? 1 : 0;
+        const bNameMatch = (b.name || '').toLowerCase().includes(term) ? 1 : 0;
+        if(aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
 
     tbody.innerHTML = '';
     if(sortedTalents.length === 0){
       emptyState.style.display = 'block';
+      emptyState.textContent = talentSearchTerm ? 'No talents match your search.' : 'No talents yet. Add your first one above.';
     } else {
       emptyState.style.display = 'none';
       sortedTalents.forEach(t => {
@@ -1771,6 +1810,11 @@
   }
   cancelItemEditBtn.addEventListener('click', resetItemForm);
 
+  document.getElementById('item-search').addEventListener('input', e => {
+    itemSearchTerm = e.target.value.trim();
+    renderItems();
+  });
+
   addItemBtn.addEventListener('click', () => {
     const name = document.getElementById('i-name').value.trim();
     const category = document.getElementById('i-category').value;
@@ -1798,6 +1842,7 @@
   const ITEM_CATEGORY_FILTERS = ['Skill Stone', 'Consumable', 'Held Item', 'Key Item'];
   const ITEM_CATEGORY_LABELS = { 'Skill Stone': 'Skill Stones', 'Consumable': 'Consumables', 'Held Item': 'Held Items', 'Key Item': 'Key Items' };
   let activeItemCategoryFilter = null;
+  let itemSearchTerm = '';
 
   function itemMatchesFilter(item, filterCat){
     if(item.category === filterCat) return true;
@@ -1833,11 +1878,21 @@
     if(activeItemCategoryFilter){
       sortedItems = sortedItems.filter(i => itemMatchesFilter(i, activeItemCategoryFilter));
     }
+    if(itemSearchTerm){
+      const term = itemSearchTerm.toLowerCase();
+      sortedItems = sortedItems.filter(i => (i.name || '').toLowerCase().includes(term) || (i.desc || '').toLowerCase().includes(term));
+      sortedItems.sort((a,b) => {
+        const aNameMatch = (a.name || '').toLowerCase().includes(term) ? 1 : 0;
+        const bNameMatch = (b.name || '').toLowerCase().includes(term) ? 1 : 0;
+        if(aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
 
     tbody.innerHTML = '';
     if(sortedItems.length === 0){
       emptyState.style.display = 'block';
-      emptyState.textContent = items.length === 0 ? 'No items yet. Add your first one above.' : 'No items match this filter.';
+      emptyState.textContent = items.length === 0 ? 'No items yet. Add your first one above.' : 'No items match your search/filter.';
     } else {
       emptyState.style.display = 'none';
       sortedItems.forEach(i => {
