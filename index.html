@@ -1507,8 +1507,12 @@
       let prevType = null;
       list.forEach(m => {
         if(m.type !== prevType){
+          const typeCount = list.filter(s => s.type === m.type).length;
           const divTr = document.createElement('tr');
-          divTr.innerHTML = `<td colspan="9" style="padding:0;"><div style="height:3px; background:${typeColorVar(m.type)};"></div></td>`;
+          divTr.innerHTML = `<td colspan="9" style="padding:10px 0 4px;">
+            <div style="font-size:0.72rem; color:${typeColorVar(m.type)}; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">${m.type} (${typeCount})</div>
+            <div style="height:3px; background:${typeColorVar(m.type)};"></div>
+          </td>`;
           tbody.appendChild(divTr);
           prevType = m.type;
         }
