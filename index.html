@@ -1504,7 +1504,14 @@
       emptyState.textContent = skillSearchTerm ? 'No skills match your search.' : 'No skills yet. Add your first one above.';
     } else {
       emptyState.style.display = 'none';
+      let prevType = null;
       list.forEach(m => {
+        if(m.type !== prevType){
+          const divTr = document.createElement('tr');
+          divTr.innerHTML = `<td colspan="9" style="padding:0;"><div style="height:3px; background:${typeColorVar(m.type)};"></div></td>`;
+          tbody.appendChild(divTr);
+          prevType = m.type;
+        }
         const tr = document.createElement('tr');
         tr.dataset.skillId = m.id;
         tr.innerHTML = `
