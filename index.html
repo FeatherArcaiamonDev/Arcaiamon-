@@ -1051,7 +1051,7 @@
 
       <div class="filter-bar">
         <div class="filter-row">
-          <input type="text" id="mon-search" placeholder="Search Arcaiamon by name…">
+          <input type="text" id="mon-search" placeholder="Search by name or talent…">
           <div class="sort-select-wrap">
             <label for="mon-sort">Sort:</label>
             <select id="mon-sort">
@@ -1755,7 +1755,7 @@
         const tr = document.createElement('tr');
         tr.dataset.talentId = t.id;
         tr.innerHTML = `
-          <td>${escapeHtml(t.name)}</td>
+          <td class="talent-name-link" data-id="${t.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px;" title="Click to see which Arcaiamon have this talent">${escapeHtml(t.name)}</td>
           <td class="desc-cell">${highlightConditions(t.desc) || '—'}</td>
           <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-talent-btn" data-id="${t.id}" title="Edit">✎</button>
@@ -1763,6 +1763,12 @@
           </td>
         `;
         tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll('.talent-name-link').forEach(cell => {
+        cell.addEventListener('click', () => {
+          openTalentUsersModal(cell.dataset.id);
+        });
       });
     }
 
@@ -2153,6 +2159,21 @@
     statusModalTitle.textContent = cond.name;
     statusModalTitle.style.color = kind === 'field' ? '#5bb3d9' : 'var(--accent)';
     statusModalDesc.textContent = cond.desc || 'No description yet.';
+    statusModalOverlay.classList.add('open');
+  }
+
+  function openTalentUsersModal(talentId){
+    const talent = talents.find(t => t.id === talentId);
+    if(!talent) return;
+    const usersSorted = mons.filter(m => (m.talentIds || []).includes(talentId))
+      .sort((a,b) => (a.order ?? 9999) - (b.order ?? 9999));
+    statusModalTitle.textContent = talent.name;
+    statusModalTitle.style.color = 'var(--accent)';
+    if(usersSorted.length === 0){
+      statusModalDesc.textContent = 'No Arcaiamon currently have this talent.';
+    } else {
+      statusModalDesc.textContent = `Arcaiamon with this talent: ${usersSorted.map(m => m.name).join(', ')}`;
+    }
     statusModalOverlay.classList.add('open');
   }
   function closeStatusModal(){
@@ -2615,7 +2636,11 @@
     let list = [...mons];
 
     if(monSearchTerm){
-      list = list.filter(m => (m.name || '').toLowerCase().includes(monSearchTerm));
+      list = list.filter(m => {
+        if((m.name || '').toLowerCase().includes(monSearchTerm)) return true;
+        const talentNames = (m.talentIds || []).map(id => talents.find(t => t.id === id)?.name || '');
+        return talentNames.some(n => n.toLowerCase().includes(monSearchTerm));
+      });
     }
     if(activeTypeFilters.size > 0){
       list = list.filter(m => activeTypeFilters.has(m.type1) || activeTypeFilters.has(m.type2));
