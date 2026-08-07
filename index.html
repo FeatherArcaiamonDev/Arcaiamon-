@@ -247,9 +247,10 @@
   .form-grid-3col{ grid-template-columns: 1fr 2fr auto; }
   .form-grid-4col{ grid-template-columns: 1.4fr 1fr 2fr auto; }
   .form-grid-5col{ grid-template-columns: 1.2fr 1fr 1.8fr 1fr auto; }
+  .form-grid-4col-alt{ grid-template-columns: 1fr 1.8fr 1fr auto; }
   @media (max-width: 760px){
-    .form-grid-3col, .form-grid-4col, .form-grid-5col{ grid-template-columns: 1fr; }
-    .form-grid-3col .add-btn, .form-grid-4col .add-btn, .form-grid-5col .add-btn{ width:100%; height:38px; }
+    .form-grid-3col, .form-grid-4col, .form-grid-5col, .form-grid-4col-alt{ grid-template-columns: 1fr; }
+    .form-grid-3col .add-btn, .form-grid-4col .add-btn, .form-grid-5col .add-btn, .form-grid-4col-alt .add-btn{ width:100%; height:38px; }
   }
 
   /* Lock screen */
@@ -869,7 +870,7 @@
   <div id="panel-talents" style="display:none;">
     <div class="panel admin-only">
       <h2 id="talent-form-title">Add a talent</h2>
-      <div class="form-grid form-grid-3col">
+      <div class="form-grid form-grid-4col-alt">
         <div class="field">
           <label for="t-name">Name</label>
           <input id="t-name" type="text" placeholder="e.g. Thick Hide">
@@ -877,6 +878,10 @@
         <div class="field">
           <label for="t-desc">Description</label>
           <textarea id="t-desc" rows="2" placeholder="What it does" style="resize:vertical;"></textarea>
+        </div>
+        <div class="field">
+          <label for="t-tags">Tags (comma separated, hidden)</label>
+          <input id="t-tags" type="text" placeholder="e.g. Weather, Contact">
         </div>
         <button class="add-btn" id="add-talent-btn" title="Add talent">+</button>
       </div>
@@ -1708,6 +1713,7 @@
   function resetTalentForm(){
     document.getElementById('t-name').value = '';
     document.getElementById('t-desc').value = '';
+    document.getElementById('t-tags').value = '';
     editingTalentId = null;
     addTalentBtn.textContent = '+';
     talentFormTitle.textContent = 'Add a talent';
@@ -1717,6 +1723,7 @@
     editingTalentId = talent.id;
     document.getElementById('t-name').value = talent.name || '';
     document.getElementById('t-desc').value = talent.desc || '';
+    document.getElementById('t-tags').value = (talent.tags || []).join(', ');
     addTalentBtn.textContent = '✓';
     talentFormTitle.textContent = `Editing ${talent.name}`;
     cancelTalentEditBtn.style.display = 'inline-block';
@@ -1732,14 +1739,15 @@
   addTalentBtn.addEventListener('click', () => {
     const name = document.getElementById('t-name').value.trim();
     const desc = document.getElementById('t-desc').value.trim();
+    const tags = parseTagsInput(document.getElementById('t-tags').value);
     if(!name){ document.getElementById('t-name').focus(); return; }
 
     const wasEditingTalentId = editingTalentId;
     if(editingTalentId){
       const idx = talents.findIndex(t => t.id === editingTalentId);
-      if(idx !== -1) talents[idx] = { ...talents[idx], name, desc };
+      if(idx !== -1) talents[idx] = { ...talents[idx], name, desc, tags };
     } else {
-      talents.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, desc });
+      talents.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, desc, tags });
     }
     resetTalentForm();
     renderTalents(); renderTalentSelects(); saveShared();
@@ -1781,7 +1789,7 @@
         tr.dataset.talentId = t.id;
         tr.innerHTML = `
           <td class="talent-name-link" data-id="${t.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px;" title="Click to see which Arcaiamon have this talent">${escapeHtml(t.name)}</td>
-          <td class="desc-cell">${highlightConditions(t.desc) || '—'}</td>
+          <td class="desc-cell">${highlightDesc(t.desc) || '—'}</td>
           <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-talent-btn" data-id="${t.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${t.id}" title="Remove">✕</button>
@@ -2192,6 +2200,7 @@
     }
     addAll(skills, 'skill');
     addAll(items, 'item');
+    addAll(talents, 'talent');
     return map;
   }
 
@@ -2222,9 +2231,11 @@
     statusModalTitle.style.color = '#7fbf6a';
     const skillNames = entry.entries.filter(e => e.kind === 'skill').map(e => e.name);
     const itemNames = entry.entries.filter(e => e.kind === 'item').map(e => e.name);
+    const talentNames = entry.entries.filter(e => e.kind === 'talent').map(e => e.name);
     const parts = [];
     if(skillNames.length) parts.push(`Skills: ${skillNames.join(', ')}`);
     if(itemNames.length) parts.push(`Items: ${itemNames.join(', ')}`);
+    if(talentNames.length) parts.push(`Talents: ${talentNames.join(', ')}`);
     statusModalDesc.textContent = parts.length ? parts.join('\n') : 'Nothing currently has this tag.';
     statusModalOverlay.classList.add('open');
   }
@@ -2893,7 +2904,8 @@
     lines.push(`TALENTS (${talents.length})`);
     lines.push('-'.repeat(60));
     [...talents].sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(t => {
-      lines.push(`${t.name}${t.desc ? ' — ' + t.desc : ''}`);
+      const tagsSuffix = (t.tags && t.tags.length) ? ` (Tags: ${t.tags.join(', ')})` : '';
+      lines.push(`${t.name}${t.desc ? ' — ' + t.desc : ''}${tagsSuffix}`);
     });
     lines.push('');
 
@@ -3093,9 +3105,15 @@
     const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
     const content = lines.slice(startIdx + 1).join('\n');
     return content.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      let tags = [];
+      const tagMatch = line.match(/\s*\(Tags:\s*([^)]*)\)\s*$/);
+      if(tagMatch){
+        tags = tagMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+        line = line.slice(0, tagMatch.index);
+      }
       const idx = line.indexOf('—');
-      if(idx === -1) return { name: line, desc: '' };
-      return { name: line.slice(0, idx).trim(), desc: line.slice(idx + 1).trim() };
+      if(idx === -1) return { name: line, desc: '', tags };
+      return { name: line.slice(0, idx).trim(), desc: line.slice(idx + 1).trim(), tags };
     }).filter(e => e.name);
   }
 
