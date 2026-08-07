@@ -103,7 +103,7 @@
 
   .form-grid{
     display:grid;
-    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 1fr 1.6fr auto;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 1fr 1.6fr 1.2fr auto;
     gap:10px;
     align-items:end;
   }
@@ -246,9 +246,10 @@
 
   .form-grid-3col{ grid-template-columns: 1fr 2fr auto; }
   .form-grid-4col{ grid-template-columns: 1.4fr 1fr 2fr auto; }
+  .form-grid-5col{ grid-template-columns: 1.2fr 1fr 1.8fr 1fr auto; }
   @media (max-width: 760px){
-    .form-grid-3col, .form-grid-4col{ grid-template-columns: 1fr; }
-    .form-grid-3col .add-btn, .form-grid-4col .add-btn{ width:100%; height:38px; }
+    .form-grid-3col, .form-grid-4col, .form-grid-5col{ grid-template-columns: 1fr; }
+    .form-grid-3col .add-btn, .form-grid-4col .add-btn, .form-grid-5col .add-btn{ width:100%; height:38px; }
   }
 
   /* Lock screen */
@@ -644,6 +645,15 @@
   }
   .field-hl:hover{ color:#7fc9e8; }
 
+  .tag-hl{
+    color:#7fbf6a;
+    text-decoration:underline dotted;
+    text-underline-offset:2px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .tag-hl:hover{ color:#95d380; }
+
   #status-modal-overlay{
     display:none;
     position:fixed;
@@ -730,7 +740,7 @@
       <h3 id="status-modal-title" style="margin:0; font-family:'Cinzel', serif; color:var(--accent);"></h3>
       <button id="status-modal-close" style="background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer;">✕</button>
     </div>
-    <p id="status-modal-desc" style="margin:12px 0 0; font-size:0.88rem; color:var(--text); line-height:1.5;"></p>
+    <p id="status-modal-desc" style="margin:12px 0 0; font-size:0.88rem; color:var(--text); line-height:1.5; white-space:pre-wrap;"></p>
   </div>
 </div>
 
@@ -817,6 +827,10 @@
         <div class="field">
           <label for="f-desc">Description / effect</label>
           <textarea id="f-desc" rows="2" placeholder="What it does" style="resize:vertical;"></textarea>
+        </div>
+        <div class="field">
+          <label for="f-tags">Tags (comma separated, hidden)</label>
+          <input id="f-tags" type="text" placeholder="e.g. Spore, Seed">
         </div>
         <button class="add-btn" id="add-btn" title="Add skill">+</button>
       </div>
@@ -1087,7 +1101,7 @@
   <div id="panel-items" style="display:none;">
     <div class="panel admin-only">
       <h2 id="item-form-title">Add an item</h2>
-      <div class="form-grid form-grid-4col">
+      <div class="form-grid form-grid-5col">
         <div class="field">
           <label for="i-name">Name</label>
           <input id="i-name" type="text" placeholder="e.g. Ember Charm">
@@ -1105,6 +1119,10 @@
         <div class="field">
           <label for="i-desc">Description</label>
           <textarea id="i-desc" rows="2" placeholder="What it does" style="resize:vertical;"></textarea>
+        </div>
+        <div class="field">
+          <label for="i-tags">Tags (comma separated, hidden)</label>
+          <input id="i-tags" type="text" placeholder="e.g. Fruit, Ore">
         </div>
         <button class="add-btn" id="add-item-btn" title="Add item">+</button>
       </div>
@@ -1526,7 +1544,7 @@
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
           <td><span class="cat-badge">T${m.tier || 1}</span></td>
           <td>${m.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Yes</span>' : '<span style="color:var(--text-dim);">—</span>'}</td>
-          <td class="desc-cell">${highlightConditions(m.desc) || '—'}</td>
+          <td class="desc-cell">${highlightDesc(m.desc) || '—'}</td>
           <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-skill-btn" data-id="${m.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${m.id}" title="Remove">✕</button>
@@ -1567,11 +1585,16 @@
   const cancelSkillEditBtn = document.getElementById('cancel-skill-edit-btn');
   const skillFormTitle = document.getElementById('skill-form-title');
 
+  function parseTagsInput(str){
+    return (str || '').split(',').map(s => s.trim()).filter(Boolean);
+  }
+
   function resetSkillForm(){
     document.getElementById('f-name').value = '';
     document.getElementById('f-power').value = '';
     document.getElementById('f-acc').value = '';
     document.getElementById('f-desc').value = '';
+    document.getElementById('f-tags').value = '';
     document.getElementById('f-type').selectedIndex = 0;
     document.getElementById('f-cat').selectedIndex = 0;
     document.getElementById('f-tier').value = '1';
@@ -1592,6 +1615,7 @@
     document.getElementById('f-tier').value = String(skill.tier || 1);
     document.getElementById('f-stone').checked = !!skill.stoneLearnable;
     document.getElementById('f-desc').value = skill.desc || '';
+    document.getElementById('f-tags').value = (skill.tags || []).join(', ');
     addSkillBtn.textContent = '✓';
     addSkillBtn.title = 'Save changes';
     skillFormTitle.textContent = `Editing ${skill.name}`;
@@ -1609,6 +1633,7 @@
     const tier = Number(document.getElementById('f-tier').value) || 1;
     const stoneLearnable = document.getElementById('f-stone').checked;
     const desc = document.getElementById('f-desc').value.trim();
+    const tags = parseTagsInput(document.getElementById('f-tags').value);
     if(!name){ document.getElementById('f-name').focus(); return; }
 
     const wasEditingSkillId = editingSkillId;
@@ -1617,14 +1642,14 @@
       if(idx !== -1){
         skills[idx] = { ...skills[idx], name, type, category,
           power: power === '' ? '' : Number(power),
-          accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc };
+          accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc, tags };
       }
     } else {
       skills.push({
         id: Date.now().toString() + Math.random().toString(36).slice(2,6),
         name, type, category,
         power: power === '' ? '' : Number(power),
-        accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc
+        accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc, tags
       });
     }
     resetSkillForm();
@@ -1809,6 +1834,7 @@
   function resetItemForm(){
     document.getElementById('i-name').value = '';
     document.getElementById('i-desc').value = '';
+    document.getElementById('i-tags').value = '';
     document.getElementById('i-category').selectedIndex = 0;
     editingItemId = null;
     addItemBtn.textContent = '+';
@@ -1820,6 +1846,7 @@
     document.getElementById('i-name').value = item.name || '';
     document.getElementById('i-category').value = item.category || 'Key Item';
     document.getElementById('i-desc').value = item.desc || '';
+    document.getElementById('i-tags').value = (item.tags || []).join(', ');
     addItemBtn.textContent = '✓';
     itemFormTitle.textContent = `Editing ${item.name}`;
     cancelItemEditBtn.style.display = 'inline-block';
@@ -1836,14 +1863,15 @@
     const name = document.getElementById('i-name').value.trim();
     const category = document.getElementById('i-category').value;
     const desc = document.getElementById('i-desc').value.trim();
+    const tags = parseTagsInput(document.getElementById('i-tags').value);
     if(!name){ document.getElementById('i-name').focus(); return; }
 
     const wasEditingItemId = editingItemId;
     if(editingItemId){
       const idx = items.findIndex(i => i.id === editingItemId);
-      if(idx !== -1) items[idx] = { ...items[idx], name, category, desc };
+      if(idx !== -1) items[idx] = { ...items[idx], name, category, desc, tags };
     } else {
-      items.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, category, desc });
+      items.push({ id: Date.now().toString() + Math.random().toString(36).slice(2,6), name, category, desc, tags });
     }
     resetItemForm();
     renderItems(); saveShared();
@@ -1918,7 +1946,7 @@
         tr.innerHTML = `
           <td>${escapeHtml(i.name)}</td>
           <td><span class="cat-badge">${escapeHtml(i.category)}</span></td>
-          <td class="desc-cell">${escapeHtml(i.desc) || '—'}</td>
+          <td class="desc-cell">${highlightDesc(i.desc) || '—'}</td>
           <td class="admin-only" style="white-space:nowrap;">
             <button class="del-btn edit-item-btn" data-id="${i.id}" title="Edit">✎</button>
             <button class="del-btn" data-id="${i.id}" title="Remove">✕</button>
@@ -2148,6 +2176,59 @@
     return escaped;
   }
 
+  /* ---- hidden tags on skills/items: highlight mentions in descriptions, click for a list ---- */
+  function buildTagIndex(){
+    const map = {};
+    function addAll(list, kind){
+      list.forEach(entry => {
+        (entry.tags || []).forEach(tagRaw => {
+          const tag = (tagRaw || '').trim();
+          if(!tag) return;
+          const key = tag.toLowerCase();
+          if(!map[key]) map[key] = { label: tag, entries: [] };
+          map[key].entries.push({ name: entry.name, kind });
+        });
+      });
+    }
+    addAll(skills, 'skill');
+    addAll(items, 'item');
+    return map;
+  }
+
+  function highlightTags(html){
+    const tagIndex = buildTagIndex();
+    const tagKeys = Object.keys(tagIndex).sort((a,b) => tagIndex[b].label.length - tagIndex[a].label.length);
+    tagKeys.forEach(key => {
+      const label = tagIndex[key].label;
+      const escName = escapeHtml(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`\\b(${escName})\\b`, 'gi');
+      html = html.replace(re, (match) => {
+        if(match.includes('data-status') || match.includes('data-field') || match.includes('data-tag')) return match;
+        return `<span class="tag-hl" data-tag="${escapeHtml(key)}">${match}</span>`;
+      });
+    });
+    return html;
+  }
+
+  function highlightDesc(text){
+    return highlightTags(highlightConditions(text));
+  }
+
+  function openTagModal(tagKey){
+    const tagIndex = buildTagIndex();
+    const entry = tagIndex[tagKey];
+    if(!entry) return;
+    statusModalTitle.textContent = entry.label;
+    statusModalTitle.style.color = '#7fbf6a';
+    const skillNames = entry.entries.filter(e => e.kind === 'skill').map(e => e.name);
+    const itemNames = entry.entries.filter(e => e.kind === 'item').map(e => e.name);
+    const parts = [];
+    if(skillNames.length) parts.push(`Skills: ${skillNames.join(', ')}`);
+    if(itemNames.length) parts.push(`Items: ${itemNames.join(', ')}`);
+    statusModalDesc.textContent = parts.length ? parts.join('\n') : 'Nothing currently has this tag.';
+    statusModalOverlay.classList.add('open');
+  }
+
   /* ---- condition popup modal (shared by status + field conditions) ---- */
   const statusModalOverlay = document.getElementById('status-modal-overlay');
   const statusModalTitle = document.getElementById('status-modal-title');
@@ -2186,10 +2267,13 @@
   document.addEventListener('click', e => {
     const shl = e.target.closest('.status-hl');
     const fhl = e.target.closest('.field-hl');
+    const thl = e.target.closest('.tag-hl');
     if(shl){
       openConditionModal(conditions.find(c => c.id === shl.dataset.status), 'status');
     } else if(fhl){
       openConditionModal(fieldConditions.find(c => c.id === fhl.dataset.field), 'field');
+    } else if(thl){
+      openTagModal(thl.dataset.tag);
     }
   });
 
@@ -2799,6 +2883,7 @@
       if(s.accuracy !== '' && s.accuracy !== undefined) statBits.push(`Accuracy ${s.accuracy}%`);
       if(statBits.length) lines.push(`  ${statBits.join(', ')}`);
       if(s.stoneLearnable) lines.push(`  Learnable by Skill Stone`);
+      if(s.tags && s.tags.length) lines.push(`  Tags: ${s.tags.join(', ')}`);
       if(s.desc) lines.push(`  Effect: ${s.desc}`);
       lines.push('');
     });
@@ -2817,7 +2902,8 @@
     lines.push(`ITEMS (${items.length})`);
     lines.push('-'.repeat(60));
     [...items].sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(i => {
-      lines.push(`${i.name}  [${i.category}]${i.desc ? ' — ' + i.desc : ''}`);
+      const tagsSuffix = (i.tags && i.tags.length) ? ` (Tags: ${i.tags.join(', ')})` : '';
+      lines.push(`${i.name}  [${i.category}]${i.desc ? ' — ' + i.desc : ''}${tagsSuffix}`);
     });
     lines.push('');
 
@@ -2964,6 +3050,7 @@
       let accuracy = '';
       let desc = '';
       let stoneLearnable = false;
+      let tags = [];
       for(let i = 1; i < bLines.length; i++){
         const line = bLines[i].trim();
         const both = line.match(/^Power\s+(\d+),\s*Accuracy\s+(\d+)%$/);
@@ -2971,13 +3058,15 @@
         const aOnly = line.match(/^Accuracy\s+(\d+)%$/);
         const eff = line.match(/^Effect:\s*(.*)$/);
         const stone = /^Learnable by Skill Stone$/i.test(line);
+        const tagsLine = line.match(/^Tags:\s*(.*)$/i);
         if(both){ power = Number(both[1]); accuracy = Number(both[2]); }
         else if(pOnly){ power = Number(pOnly[1]); }
         else if(aOnly){ accuracy = Number(aOnly[1]); }
         else if(stone){ stoneLearnable = true; }
+        else if(tagsLine){ tags = tagsLine[1].split(',').map(s => s.trim()).filter(Boolean); }
         else if(eff){ desc = eff[1]; }
       }
-      out.push({ name, type, category, tier, power, accuracy, stoneLearnable, desc });
+      out.push({ name, type, category, tier, power, accuracy, stoneLearnable, tags, desc });
     });
     return out;
   }
@@ -2987,9 +3076,15 @@
     const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
     const content = lines.slice(startIdx + 1).join('\n');
     return content.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      let tags = [];
+      const tagMatch = line.match(/\s*\(Tags:\s*([^)]*)\)\s*$/);
+      if(tagMatch){
+        tags = tagMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+        line = line.slice(0, tagMatch.index);
+      }
       const m = line.match(/^(.+?)\s{2,}\[(.+?)\]\s*(?:—\s*(.*))?$/);
       if(!m) return null;
-      return { name: m[1].trim(), category: m[2].trim(), desc: (m[3] || '').trim() };
+      return { name: m[1].trim(), category: m[2].trim(), desc: (m[3] || '').trim(), tags };
     }).filter(Boolean);
   }
 
