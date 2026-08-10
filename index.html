@@ -655,6 +655,80 @@
   }
   .tag-hl:hover{ color:#95d380; }
 
+  /* Type Chart */
+  .tc-legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .tc-legend-item{
+    font-size:0.75rem;
+    font-weight:600;
+    padding:4px 12px;
+    border-radius:20px;
+  }
+  .tc-table-wrap{
+    overflow-x:auto;
+    border-radius:8px;
+  }
+  .tc-table-wrap table{
+    border-collapse:collapse;
+    font-size:0.82rem;
+  }
+  .tc-table-wrap th, .tc-table-wrap td{
+    border:1px solid var(--line);
+    padding:6px 9px;
+    text-align:center;
+    white-space:nowrap;
+  }
+  .tc-table-wrap th{
+    background:var(--panel-2);
+    color:#12141c;
+    font-weight:700;
+    position:sticky;
+    z-index:2;
+  }
+  .tc-table-wrap thead th{ top:0; }
+  .tc-table-wrap tbody th{ left:0; z-index:3; }
+  .tc-cell{
+    cursor:pointer;
+    user-select:none;
+    font-weight:700;
+    color:var(--text);
+  }
+  .tc-cell:hover{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .tc-eff-0{ background:#1a1a1a; color:#e05a5a !important; }
+  .tc-eff-0_5{ background:rgba(232,98,44,0.18); color:#e8622c !important; }
+  .tc-eff-1{ background:var(--panel-2); color:var(--text-dim) !important; }
+  .tc-eff-2{ background:rgba(122,201,122,0.18); color:#7ac97a !important; }
+  .tc-summary-col{
+    font-size:0.68rem;
+    background:var(--panel);
+  }
+  .tc-badge{
+    display:inline-block;
+    min-width:18px;
+    padding:1px 5px;
+    border-radius:4px;
+    font-weight:700;
+    margin:0 2px;
+  }
+  .tc-badge-w{ background:#3a6b3a; color:#c8f0c8; }
+  .tc-badge-r{ background:#7a3a1a; color:#f5c9a8; }
+  .tc-badge-i{ background:#000; color:#e05a5a; }
+  #tc-calc-table td.tc-calc-name{ text-align:left; }
+  #tc-dual-summary .tc-summary-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 14px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    margin-bottom:8px;
+    font-size:0.9rem;
+  }
+
   #status-modal-overlay{
     display:none;
     position:fixed;
@@ -776,6 +850,7 @@
   <button class="tab-btn" id="tab-btn-items">Items</button>
   <button class="tab-btn" id="tab-btn-conditions">Status Conditions</button>
   <button class="tab-btn" id="tab-btn-fieldconditions">Field Conditions</button>
+  <button class="tab-btn" id="tab-btn-typechart">Type Chart</button>
 </div>
 
 <div class="wrap">
@@ -1236,6 +1311,46 @@
     </div>
   </div>
 
+  <!-- TYPE CHART TAB -->
+  <div id="panel-typechart" style="display:none;">
+    <div class="panel">
+      <h2>Type Effectiveness Chart</h2>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Rows attack, columns defend. Tap a cell to cycle through Neutral → Weak (×2) → Resist (×0.5) → Immune (×0).</p>
+      <div class="tc-legend">
+        <span class="tc-legend-item tc-eff-2">Weakness ×2</span>
+        <span class="tc-legend-item tc-eff-0_5">Resistance ×0.5</span>
+        <span class="tc-legend-item tc-eff-0">Immune ×0</span>
+        <span class="tc-legend-item tc-eff-1">Neutral ×1</span>
+      </div>
+      <div class="tc-table-wrap" id="tc-table-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Dual-Type Damage Calculator</h2>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Pick up to two defending types to see how every attack type performs against that combo — and (below) how those same two types perform as attackers.</p>
+      <div class="mon-form-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="field">
+          <label for="tc-def1">Type 1</label>
+          <select id="tc-def1"><option value="">None</option></select>
+        </div>
+        <div class="field">
+          <label for="tc-def2">Type 2</label>
+          <select id="tc-def2"><option value="">None</option></select>
+        </div>
+      </div>
+
+      <div class="tc-table-wrap" style="margin-top:16px;">
+        <table id="tc-calc-table"></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Dual-Type Attacker Summary</h2>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Using the same two types selected above as attackers — how many defending types are hit super effectively, resisted, or are immune.</p>
+      <div id="tc-dual-summary"></div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1338,12 +1453,14 @@
   const tabBtnItems = document.getElementById('tab-btn-items');
   const tabBtnConditions = document.getElementById('tab-btn-conditions');
   const tabBtnFieldConditions = document.getElementById('tab-btn-fieldconditions');
+  const tabBtnTypeChart = document.getElementById('tab-btn-typechart');
   const panelSkills = document.getElementById('panel-skills');
   const panelTalents = document.getElementById('panel-talents');
   const panelMons = document.getElementById('panel-mons');
   const panelItems = document.getElementById('panel-items');
   const panelConditions = document.getElementById('panel-conditions');
   const panelFieldConditions = document.getElementById('panel-fieldconditions');
+  const panelTypeChart = document.getElementById('panel-typechart');
   const headerSub = document.getElementById('header-sub');
 
   function showTab(which){
@@ -1353,15 +1470,18 @@
     tabBtnItems.classList.toggle('active', which === 'items');
     tabBtnConditions.classList.toggle('active', which === 'conditions');
     tabBtnFieldConditions.classList.toggle('active', which === 'fieldconditions');
+    tabBtnTypeChart.classList.toggle('active', which === 'typechart');
     panelSkills.style.display = which === 'skills' ? 'block' : 'none';
     panelTalents.style.display = which === 'talents' ? 'block' : 'none';
     panelMons.style.display = which === 'mons' ? 'block' : 'none';
     panelItems.style.display = which === 'items' ? 'block' : 'none';
     panelConditions.style.display = which === 'conditions' ? 'block' : 'none';
     panelFieldConditions.style.display = which === 'fieldconditions' ? 'block' : 'none';
-    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ', fieldconditions: 'Field condition library ' };
+    panelTypeChart.style.display = which === 'typechart' ? 'block' : 'none';
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ', fieldconditions: 'Field condition library ', typechart: 'Type effectiveness chart ' };
     headerSub.childNodes[0].textContent = subs[which];
     if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
+    if(which === 'typechart'){ renderTypeChart(); }
   }
   tabBtnSkills.addEventListener('click', () => showTab('skills'));
   tabBtnTalents.addEventListener('click', () => showTab('talents'));
@@ -1369,6 +1489,7 @@
   tabBtnItems.addEventListener('click', () => showTab('items'));
   tabBtnConditions.addEventListener('click', () => showTab('conditions'));
   tabBtnFieldConditions.addEventListener('click', () => showTab('fieldconditions'));
+  tabBtnTypeChart.addEventListener('click', () => showTab('typechart'));
 
   /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
@@ -1414,12 +1535,13 @@
     unlockApp(sessionStorage.getItem('movedex-mode') === 'admin' ? 'admin' : 'viewer');
   }
 
-  /* ============ SHARED DOC: SKILLS + TALENTS + ITEMS + CONDITIONS ============ */
+  /* ============ SHARED DOC: SKILLS + TALENTS + ITEMS + CONDITIONS + TYPE CHART ============ */
   let skills = [];
   let talents = [];
   let items = [];
   let conditions = [];
   let fieldConditions = [];
+  let typeChart = {};
   let sortKey = null;
   let sortDir = 1;
   let saveTimeout = null;
@@ -1431,6 +1553,29 @@
   let editingConditionId = null;
   let editingFieldConditionId = null;
 
+  const DEFAULT_TYPE_CHART = {
+    "Water": {"Fire":2,"Water":0,"Flora":0.5,"Frost":0.5,"Poison":2,"Earth":2,"Basic":1,"Volt":1,"Wind":1,"Mystic":1,"Insect":0.5,"Spirit":1,"Holy":1,"Iron":2},
+    "Fire": {"Water":0.5,"Flora":2,"Frost":2,"Mystic":0.5,"Insect":2,"Earth":0.5,"Iron":2,"Basic":1,"Fire":1,"Volt":1,"Poison":1,"Wind":1,"Spirit":1,"Holy":1},
+    "Volt": {"Insect":2,"Water":2,"Volt":2,"Flora":0.5,"Frost":0.5,"Wind":2,"Iron":2,"Basic":1,"Fire":0.5,"Poison":1,"Mystic":1,"Earth":0,"Spirit":1,"Holy":1},
+    "Poison": {"Basic":2,"Flora":2,"Poison":0,"Mystic":0.5,"Holy":0.5,"Iron":0.5,"Fire":1,"Water":1,"Volt":1,"Frost":1,"Wind":1,"Insect":2,"Earth":1,"Spirit":1},
+    "Mystic": {"Basic":2,"Fire":2,"Water":0.5,"Volt":1,"Poison":2,"Insect":0.5,"Spirit":2,"Holy":0,"Flora":1,"Frost":1,"Wind":1,"Mystic":1,"Earth":1,"Iron":1},
+    "Spirit": {"Basic":0,"Wind":0.5,"Mystic":2,"Insect":0.5,"Earth":0.5,"Spirit":2,"Holy":0.5,"Iron":2,"Fire":1,"Water":1,"Volt":1,"Flora":1,"Frost":1,"Poison":1},
+    "Flora": {"Fire":0.5,"Water":2,"Flora":1,"Poison":0.5,"Insect":0.5,"Earth":2,"Iron":0.5,"Basic":1,"Volt":1,"Frost":1,"Wind":1,"Mystic":1,"Spirit":1,"Holy":1},
+    "Insect": {"Fire":0.5,"Volt":0.5,"Flora":2,"Insect":2,"Earth":2,"Iron":0.5,"Basic":1,"Water":1,"Frost":1,"Poison":1,"Wind":0.5,"Mystic":1,"Spirit":1,"Holy":1},
+    "Holy": {"Fire":2,"Poison":2,"Mystic":2,"Earth":1,"Spirit":2,"Iron":0.5,"Basic":0.5,"Water":1,"Volt":1,"Flora":1,"Frost":1,"Wind":1,"Insect":0.5,"Holy":1},
+    "Iron": {"Fire":0.5,"Flora":0.5,"Frost":2,"Wind":1,"Holy":2,"Iron":0.5,"Basic":1,"Water":1,"Volt":1,"Poison":1,"Mystic":1,"Insect":1,"Earth":1,"Spirit":1},
+    "Frost": {"Water":2,"Volt":2,"Flora":2,"Insect":2,"Earth":0.5,"Spirit":0.5,"Holy":0.5,"Basic":1,"Fire":1,"Frost":1,"Poison":1,"Wind":1,"Mystic":1,"Iron":1},
+    "Earth": {"Water":0.5,"Volt":2,"Flora":0.5,"Poison":0.5,"Wind":0,"Mystic":2,"Iron":2,"Basic":1,"Fire":1,"Frost":1,"Insect":1,"Earth":1,"Spirit":1,"Holy":1},
+    "Basic": {"Flora":1,"Spirit":0,"Holy":2,"Iron":0.5,"Basic":1,"Fire":1,"Water":1,"Volt":1,"Frost":1,"Poison":1,"Wind":1,"Mystic":0.5,"Insect":1,"Earth":1},
+    "Wind": {"Wind":0.5,"Insect":1,"Earth":0.5,"Spirit":2,"Iron":0.5,"Basic":1,"Fire":1,"Water":1,"Flora":1,"Frost":1,"Poison":1,"Mystic":1,"Holy":1}
+  };
+
+  function getEffectiveness(attackType, defendType){
+    if(typeChart[attackType] && typeChart[attackType][defendType] !== undefined) return typeChart[attackType][defendType];
+    if(DEFAULT_TYPE_CHART[attackType] && DEFAULT_TYPE_CHART[attackType][defendType] !== undefined) return DEFAULT_TYPE_CHART[attackType][defendType];
+    return 1;
+  }
+
   async function loadShared(){
     setSyncStatus('Loading…', true);
     try{
@@ -1441,6 +1586,7 @@
       items = Array.isArray(data.items) ? data.items : [];
       conditions = Array.isArray(data.conditions) ? data.conditions : [];
       fieldConditions = Array.isArray(data.fieldConditions) ? data.fieldConditions : [];
+      typeChart = (data.typeChart && typeof data.typeChart === 'object') ? data.typeChart : {};
       setSyncStatus('Synced');
     }catch(err){
       console.error(err);
@@ -1461,7 +1607,7 @@
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try{
-        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions, fieldConditions });
+        await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions, fieldConditions, typeChart });
         setSyncStatus('Synced');
       }catch(err){
         console.error(err);
@@ -1469,6 +1615,163 @@
       }
     }, 400);
   }
+
+  /* ============ TYPE CHART ============ */
+  const TC_CYCLE = [1, 2, 0.5, 0];
+
+  function tcClassFor(mult){
+    return 'tc-eff-' + String(mult).replace('.', '_');
+  }
+  function tcDisplay(mult){
+    if(mult === 0.5) return '½';
+    if(mult === 0.25) return '¼';
+    if(mult === 0) return '0';
+    return String(mult);
+  }
+  function setEffectiveness(attackType, defendType, mult){
+    if(!typeChart[attackType]) typeChart[attackType] = {};
+    typeChart[attackType][defendType] = mult;
+    saveShared();
+  }
+
+  function renderTypeChart(){
+    renderTypeChartGrid();
+    renderTypeChartSelectors();
+    renderTypeChartCalc();
+    renderTypeChartDualSummary();
+  }
+
+  function renderTypeChartGrid(){
+    const wrap = document.getElementById('tc-table-wrap');
+    const table = document.createElement('table');
+
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    const cornerTh = document.createElement('th');
+    cornerTh.textContent = 'Atk ↓ / Def →';
+    cornerTh.style.left = '0';
+    cornerTh.style.zIndex = '4';
+    headRow.appendChild(cornerTh);
+    TYPES.forEach(defType => {
+      const th = document.createElement('th');
+      th.textContent = defType;
+      th.style.background = typeColorVar(defType);
+      headRow.appendChild(th);
+    });
+    const summaryTh = document.createElement('th');
+    summaryTh.textContent = 'W / R / I';
+    headRow.appendChild(summaryTh);
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    TYPES.forEach(attType => {
+      const tr = document.createElement('tr');
+      const rowTh = document.createElement('th');
+      rowTh.textContent = attType;
+      rowTh.style.background = typeColorVar(attType);
+      tr.appendChild(rowTh);
+
+      let w = 0, r = 0, i = 0;
+      TYPES.forEach(defType => {
+        const mult = getEffectiveness(attType, defType);
+        if(mult === 2) w++;
+        else if(mult === 0.5) r++;
+        else if(mult === 0) i++;
+
+        const td = document.createElement('td');
+        td.className = 'tc-cell ' + tcClassFor(mult);
+        td.textContent = tcDisplay(mult);
+        if(!isViewerMode){
+          td.title = 'Click to cycle: Neutral → Weak → Resist → Immune';
+          td.addEventListener('click', () => {
+            const idx = TC_CYCLE.indexOf(mult);
+            const next = TC_CYCLE[(idx + 1) % TC_CYCLE.length];
+            setEffectiveness(attType, defType, next);
+            renderTypeChart();
+          });
+        }
+        tr.appendChild(td);
+      });
+
+      const summaryTd = document.createElement('td');
+      summaryTd.className = 'tc-summary-col';
+      summaryTd.innerHTML = `<span class="tc-badge tc-badge-w">${w}</span><span class="tc-badge tc-badge-r">${r}</span><span class="tc-badge tc-badge-i">${i}</span>`;
+      tr.appendChild(summaryTd);
+
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    wrap.innerHTML = '';
+    wrap.appendChild(table);
+  }
+
+  function renderTypeChartSelectors(){
+    const sel1 = document.getElementById('tc-def1');
+    const sel2 = document.getElementById('tc-def2');
+    const cur1 = sel1.value, cur2 = sel2.value;
+    sel1.innerHTML = '<option value="">None</option>';
+    sel2.innerHTML = '<option value="">None</option>';
+    TYPES.forEach(t => {
+      sel1.appendChild(new Option(t, t));
+      sel2.appendChild(new Option(t, t));
+    });
+    if(TYPES.includes(cur1)) sel1.value = cur1;
+    if(TYPES.includes(cur2)) sel2.value = cur2;
+  }
+
+  function renderTypeChartCalc(){
+    const table = document.getElementById('tc-calc-table');
+    const def1 = document.getElementById('tc-def1').value;
+    const def2 = document.getElementById('tc-def2').value;
+
+    let html = '<thead><tr><th>Attack Type</th><th>Effectiveness</th></tr></thead><tbody>';
+    TYPES.forEach(attType => {
+      const e1 = def1 ? getEffectiveness(attType, def1) : 1;
+      const e2 = def2 ? getEffectiveness(attType, def2) : 1;
+      const combined = Math.round(e1 * e2 * 100) / 100;
+      let cls = 'tc-eff-1';
+      if(combined === 4 || combined === 2) cls = 'tc-eff-2';
+      else if(combined === 0.5 || combined === 0.25) cls = 'tc-eff-0_5';
+      else if(combined === 0) cls = 'tc-eff-0';
+      html += `<tr><td class="tc-calc-name"><span class="type-badge" style="background:${typeColorVar(attType)}">${attType}</span></td><td class="tc-cell ${cls}">${tcDisplay(combined)}</td></tr>`;
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+  }
+
+  function renderTypeChartDualSummary(){
+    const container = document.getElementById('tc-dual-summary');
+    const att1 = document.getElementById('tc-def1').value;
+    const att2 = document.getElementById('tc-def2').value;
+
+    if(!att1 && !att2){
+      container.innerHTML = '<div style="color:var(--text-dim); font-size:0.85rem;">Select at least one type above.</div>';
+      return;
+    }
+
+    const se = new Set(), res = new Set(), imm = new Set();
+    TYPES.forEach(defType => {
+      const e1 = att1 ? getEffectiveness(att1, defType) : 1;
+      const e2 = att2 ? getEffectiveness(att2, defType) : 1;
+      if(e1 === 2 || e2 === 2) se.add(defType);
+      if(e1 === 0.5 && e2 === 0.5) res.add(defType);
+      if(e1 === 0 || e2 === 0) imm.add(defType);
+    });
+    se.forEach(t => { res.delete(t); imm.delete(t); });
+    res.forEach(t => { imm.delete(t); });
+
+    container.innerHTML = `
+      <div class="tc-summary-row"><span>Super Effective (×2)</span><span class="tc-badge tc-badge-w">${se.size}</span></div>
+      <div class="tc-summary-row"><span>Resisted (×0.5)</span><span class="tc-badge tc-badge-r">${res.size}</span></div>
+      <div class="tc-summary-row"><span>Immune (×0)</span><span class="tc-badge tc-badge-i">${imm.size}</span></div>
+    `;
+  }
+
+  document.getElementById('tc-def1').addEventListener('change', () => { renderTypeChartCalc(); renderTypeChartDualSummary(); });
+  document.getElementById('tc-def2').addEventListener('change', () => { renderTypeChartCalc(); renderTypeChartDualSummary(); });
+
 
   /* ============ SKILLS ============ */
   function renderSkills(){
@@ -2968,6 +3271,16 @@
       lines.push('');
     });
 
+    // TYPE CHART
+    lines.push(rule);
+    lines.push('TYPE CHART');
+    lines.push('-'.repeat(60));
+    TYPES.forEach(attType => {
+      const pairs = TYPES.map(defType => `${defType}=${getEffectiveness(attType, defType)}`);
+      lines.push(`${attType}: ${pairs.join(', ')}`);
+    });
+    lines.push('');
+
     lines.push(rule);
     lines.push('END OF EXPORT');
     lines.push(rule);
@@ -3179,6 +3492,26 @@
     return out;
   }
 
+  function parseTypeChartSection(body){
+    const lines = body.split('\n');
+    const startIdx = lines.findIndex(l => /^-{5,}$/.test(l.trim()));
+    const content = lines.slice(startIdx + 1).join('\n');
+    const result = {};
+    content.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+      const idx = line.indexOf(':');
+      if(idx === -1) return;
+      const attType = line.slice(0, idx).trim();
+      const rest = line.slice(idx + 1).trim();
+      const pairs = {};
+      rest.split(',').forEach(pair => {
+        const m = pair.trim().match(/^(.+?)=([\d.]+)$/);
+        if(m) pairs[m[1].trim()] = Number(m[2]);
+      });
+      if(attType) result[attType] = pairs;
+    });
+    return result;
+  }
+
   async function runImport(){
     const raw = importTextarea.value.trim();
     if(!raw){
@@ -3189,7 +3522,7 @@
     importStatusEl.textContent = 'Parsing…';
 
     const sections = splitSection(raw);
-    const counts = { skills:{added:0,updated:0}, talents:{added:0,updated:0}, items:{added:0,updated:0}, conditions:{added:0,updated:0}, fieldConditions:{added:0,updated:0}, mons:{added:0,updated:0} };
+    const counts = { skills:{added:0,updated:0}, talents:{added:0,updated:0}, items:{added:0,updated:0}, conditions:{added:0,updated:0}, fieldConditions:{added:0,updated:0}, mons:{added:0,updated:0}, typeChart:0 };
 
     let parsedMons = [];
 
@@ -3222,13 +3555,20 @@
         });
       } else if(/^ARCAIAMON\s*\(/.test(firstLine)){
         parsedMons = parseMonsSection(sec);
+      } else if(/^TYPE CHART/.test(firstLine)){
+        const parsedChart = parseTypeChartSection(sec);
+        Object.keys(parsedChart).forEach(attType => {
+          if(!typeChart[attType]) typeChart[attType] = {};
+          Object.assign(typeChart[attType], parsedChart[attType]);
+        });
+        counts.typeChart = Object.keys(parsedChart).length;
       }
     });
 
-    // Persist skills/talents/items/conditions/fieldConditions in one shared write
+    // Persist skills/talents/items/conditions/fieldConditions/typeChart in one shared write
     importStatusEl.textContent = 'Saving skills, talents, items, and conditions…';
     try{
-      await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions, fieldConditions });
+      await setDoc(doc(db, ...SKILLS_DOC), { skills, talents, items, conditions, fieldConditions, typeChart });
     }catch(err){
       console.error(err);
       importStatusEl.textContent = 'Failed to save skills/talents/items/conditions. Check connection and try again.';
@@ -3309,7 +3649,9 @@
       `Items: +${counts.items.added} / ~${counts.items.updated}\n` +
       `Status Conditions: +${counts.conditions.added} / ~${counts.conditions.updated}\n` +
       `Field Conditions: +${counts.fieldConditions.added} / ~${counts.fieldConditions.updated}\n` +
-      `Arcaiamon: +${counts.mons.added} / ~${counts.mons.updated}`;
+      `Arcaiamon: +${counts.mons.added} / ~${counts.mons.updated}\n` +
+      `Type Chart: ${counts.typeChart} attack type row(s) updated`;
+    if(document.getElementById('panel-typechart').style.display !== 'none') renderTypeChart();
     runImportBtn.disabled = false;
   }
 
