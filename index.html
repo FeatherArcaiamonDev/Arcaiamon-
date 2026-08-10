@@ -684,7 +684,7 @@
   }
   .tc-table-wrap th{
     background:var(--panel-2);
-    color:#12141c;
+    color:var(--text);
     font-weight:700;
     position:sticky;
     z-index:2;
@@ -700,7 +700,7 @@
   .tc-cell:hover{ outline:2px solid var(--accent); outline-offset:-2px; }
   .tc-eff-0{ background:#1a1a1a; color:#e05a5a !important; }
   .tc-eff-0_5{ background:rgba(232,98,44,0.18); color:#e8622c !important; }
-  .tc-eff-1{ background:var(--panel-2); color:var(--text-dim) !important; }
+  .tc-eff-1{ background:var(--panel-2); color:var(--text) !important; }
   .tc-eff-2{ background:rgba(122,201,122,0.18); color:#7ac97a !important; }
   .tc-summary-col{
     font-size:0.68rem;
@@ -1654,8 +1654,7 @@
     headRow.appendChild(cornerTh);
     TYPES.forEach(defType => {
       const th = document.createElement('th');
-      th.textContent = defType;
-      th.style.background = typeColorVar(defType);
+      th.innerHTML = `<span class="type-badge" style="background:${typeColorVar(defType)}">${defType}</span>`;
       headRow.appendChild(th);
     });
     const summaryTh = document.createElement('th');
@@ -1668,8 +1667,7 @@
     TYPES.forEach(attType => {
       const tr = document.createElement('tr');
       const rowTh = document.createElement('th');
-      rowTh.textContent = attType;
-      rowTh.style.background = typeColorVar(attType);
+      rowTh.innerHTML = `<span class="type-badge" style="background:${typeColorVar(attType)}">${attType}</span>`;
       tr.appendChild(rowTh);
 
       let w = 0, r = 0, i = 0;
