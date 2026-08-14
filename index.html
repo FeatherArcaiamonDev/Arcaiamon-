@@ -729,6 +729,28 @@
     font-size:0.9rem;
   }
 
+  .stats-badge-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .stats-badge{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 14px;
+    font-size:0.85rem;
+  }
+  .stats-badge .stats-count{
+    font-weight:700;
+    color:var(--accent);
+    font-size:1rem;
+  }
+  .stats-num-cell{ font-variant-numeric:tabular-nums; }
+
   #status-modal-overlay{
     display:none;
     position:fixed;
@@ -851,6 +873,7 @@
   <button class="tab-btn" id="tab-btn-conditions">Status Conditions</button>
   <button class="tab-btn" id="tab-btn-fieldconditions">Field Conditions</button>
   <button class="tab-btn" id="tab-btn-typechart">Type Chart</button>
+  <button class="tab-btn" id="tab-btn-stats">Statistics</button>
 </div>
 
 <div class="wrap">
@@ -1351,6 +1374,67 @@
     </div>
   </div>
 
+  <!-- STATISTICS TAB -->
+  <div id="panel-stats" style="display:none;">
+    <div class="panel">
+      <h2>Ascension Stages</h2>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">How many Arcaiamon sit at each stage of their evolution line.</p>
+      <div id="stats-ascension-stages" class="stats-badge-row"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Arcaiamon by Type</h2>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Counts include an Arcaiamon under both its Type 1 and Type 2, if it has two.</p>
+      <div id="stats-type-counts" class="stats-badge-row"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Talent Usage</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="nosort">Talent</th><th class="nosort">Arcaiamon with it</th></tr></thead>
+          <tbody id="stats-talent-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Average Stats by Type</h2>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Averaged across every Arcaiamon that has this type as Type 1 or Type 2.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th class="nosort">Type</th>
+            <th class="nosort">Count</th>
+            <th class="nosort">HP</th>
+            <th class="nosort">P-ATK</th>
+            <th class="nosort">M-ATK</th>
+            <th class="nosort">P-DEF</th>
+            <th class="nosort">M-DEF</th>
+            <th class="nosort">AGI</th>
+          </tr></thead>
+          <tbody id="stats-avg-stats-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Skill Category Breakdown by Type</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th class="nosort">Type</th>
+            <th class="nosort">Physical</th>
+            <th class="nosort">Magic</th>
+            <th class="nosort">Status</th>
+            <th class="nosort">Total</th>
+          </tr></thead>
+          <tbody id="stats-skill-cat-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1454,6 +1538,7 @@
   const tabBtnConditions = document.getElementById('tab-btn-conditions');
   const tabBtnFieldConditions = document.getElementById('tab-btn-fieldconditions');
   const tabBtnTypeChart = document.getElementById('tab-btn-typechart');
+  const tabBtnStats = document.getElementById('tab-btn-stats');
   const panelSkills = document.getElementById('panel-skills');
   const panelTalents = document.getElementById('panel-talents');
   const panelMons = document.getElementById('panel-mons');
@@ -1461,6 +1546,7 @@
   const panelConditions = document.getElementById('panel-conditions');
   const panelFieldConditions = document.getElementById('panel-fieldconditions');
   const panelTypeChart = document.getElementById('panel-typechart');
+  const panelStats = document.getElementById('panel-stats');
   const headerSub = document.getElementById('header-sub');
 
   function showTab(which){
@@ -1471,6 +1557,7 @@
     tabBtnConditions.classList.toggle('active', which === 'conditions');
     tabBtnFieldConditions.classList.toggle('active', which === 'fieldconditions');
     tabBtnTypeChart.classList.toggle('active', which === 'typechart');
+    tabBtnStats.classList.toggle('active', which === 'stats');
     panelSkills.style.display = which === 'skills' ? 'block' : 'none';
     panelTalents.style.display = which === 'talents' ? 'block' : 'none';
     panelMons.style.display = which === 'mons' ? 'block' : 'none';
@@ -1478,10 +1565,12 @@
     panelConditions.style.display = which === 'conditions' ? 'block' : 'none';
     panelFieldConditions.style.display = which === 'fieldconditions' ? 'block' : 'none';
     panelTypeChart.style.display = which === 'typechart' ? 'block' : 'none';
-    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ', fieldconditions: 'Field condition library ', typechart: 'Type effectiveness chart ' };
+    panelStats.style.display = which === 'stats' ? 'block' : 'none';
+    const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ', fieldconditions: 'Field condition library ', typechart: 'Type effectiveness chart ', stats: 'Statistics ' };
     headerSub.childNodes[0].textContent = subs[which];
     if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
     if(which === 'typechart'){ renderTypeChart(); }
+    if(which === 'stats'){ renderStatistics(); }
   }
   tabBtnSkills.addEventListener('click', () => showTab('skills'));
   tabBtnTalents.addEventListener('click', () => showTab('talents'));
@@ -1490,6 +1579,7 @@
   tabBtnConditions.addEventListener('click', () => showTab('conditions'));
   tabBtnFieldConditions.addEventListener('click', () => showTab('fieldconditions'));
   tabBtnTypeChart.addEventListener('click', () => showTab('typechart'));
+  tabBtnStats.addEventListener('click', () => showTab('stats'));
 
   /* ============ LOCK SCREEN ============ */
   const lockScreen = document.getElementById('lock-screen');
@@ -1770,6 +1860,112 @@
   document.getElementById('tc-def1').addEventListener('change', () => { renderTypeChartCalc(); renderTypeChartDualSummary(); });
   document.getElementById('tc-def2').addEventListener('change', () => { renderTypeChartCalc(); renderTypeChartDualSummary(); });
 
+  /* ============ STATISTICS ============ */
+  function monAscensionStage(mon, visited){
+    visited = visited || new Set();
+    if(!mon || visited.has(mon.id)) return 1;
+    visited.add(mon.id);
+    if(!mon.preAscensionId) return 1;
+    const pre = mons.find(m => m.id === mon.preAscensionId);
+    if(!pre) return 1;
+    return 1 + monAscensionStage(pre, visited);
+  }
+
+  function renderStatistics(){
+    // Ascension stages
+    const stageCounts = {};
+    mons.forEach(m => {
+      const stage = monAscensionStage(m);
+      stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+    });
+    const stageEl = document.getElementById('stats-ascension-stages');
+    const maxStage = Math.max(1, ...Object.keys(stageCounts).map(Number));
+    stageEl.innerHTML = '';
+    for(let s = 1; s <= maxStage; s++){
+      const badge = document.createElement('div');
+      badge.className = 'stats-badge';
+      badge.innerHTML = `<span>Stage ${s}</span><span class="stats-count">${stageCounts[s] || 0}</span>`;
+      stageEl.appendChild(badge);
+    }
+    if(mons.length === 0){
+      stageEl.innerHTML = '<span style="color:var(--text-dim); font-size:0.85rem;">No Arcaiamon yet.</span>';
+    }
+
+    // Arcaiamon by type
+    const typeCounts = {};
+    TYPES.forEach(t => { typeCounts[t] = 0; });
+    mons.forEach(m => {
+      if(m.type1 && typeCounts[m.type1] !== undefined) typeCounts[m.type1]++;
+      if(m.type2 && typeCounts[m.type2] !== undefined) typeCounts[m.type2]++;
+    });
+    const typeEl = document.getElementById('stats-type-counts');
+    typeEl.innerHTML = '';
+    TYPES.forEach(t => {
+      const badge = document.createElement('div');
+      badge.className = 'stats-badge';
+      badge.innerHTML = `<span class="type-badge" style="background:${typeColorVar(t)}">${t}</span><span class="stats-count">${typeCounts[t]}</span>`;
+      typeEl.appendChild(badge);
+    });
+
+    // Talent usage
+    const talentCounts = talents.map(t => {
+      const count = mons.filter(m => (m.talentIds || []).includes(t.id)).length;
+      return { name: t.name, count };
+    }).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+    const talentBody = document.getElementById('stats-talent-body');
+    talentBody.innerHTML = talentCounts.length === 0
+      ? '<tr><td colspan="2" style="color:var(--text-dim); text-align:center; padding:20px;">No talents yet.</td></tr>'
+      : talentCounts.map(t => `<tr><td>${escapeHtml(t.name)}</td><td class="stats-num-cell">${t.count}</td></tr>`).join('');
+
+    // Average stats by type
+    const avgBody = document.getElementById('stats-avg-stats-body');
+    const statKeys = ['hp','patk','matk','pdef','mdef','agi'];
+    const avgRows = TYPES.map(t => {
+      const group = mons.filter(m => m.type1 === t || m.type2 === t);
+      if(group.length === 0) return null;
+      const sums = { hp:0, patk:0, matk:0, pdef:0, mdef:0, agi:0 };
+      group.forEach(m => statKeys.forEach(k => { sums[k] += (m.stats && m.stats[k]) || 0; }));
+      const avgs = {};
+      statKeys.forEach(k => { avgs[k] = Math.round((sums[k] / group.length) * 10) / 10; });
+      return { type: t, count: group.length, avgs };
+    }).filter(Boolean);
+    avgBody.innerHTML = avgRows.length === 0
+      ? '<tr><td colspan="8" style="color:var(--text-dim); text-align:center; padding:20px;">No Arcaiamon yet.</td></tr>'
+      : avgRows.map(r => `
+        <tr>
+          <td><span class="type-badge" style="background:${typeColorVar(r.type)}">${r.type}</span></td>
+          <td class="stats-num-cell">${r.count}</td>
+          <td class="stats-num-cell">${r.avgs.hp}</td>
+          <td class="stats-num-cell">${r.avgs.patk}</td>
+          <td class="stats-num-cell">${r.avgs.matk}</td>
+          <td class="stats-num-cell">${r.avgs.pdef}</td>
+          <td class="stats-num-cell">${r.avgs.mdef}</td>
+          <td class="stats-num-cell">${r.avgs.agi}</td>
+        </tr>
+      `).join('');
+
+    // Skill category breakdown by type
+    const skillCatBody = document.getElementById('stats-skill-cat-body');
+    const catRows = TYPES.map(t => {
+      const group = skills.filter(s => s.type === t);
+      if(group.length === 0) return null;
+      const physical = group.filter(s => s.category === 'Physical').length;
+      const magic = group.filter(s => s.category === 'Magic').length;
+      const status = group.filter(s => s.category === 'Status').length;
+      return { type: t, physical, magic, status, total: group.length };
+    }).filter(Boolean);
+    skillCatBody.innerHTML = catRows.length === 0
+      ? '<tr><td colspan="5" style="color:var(--text-dim); text-align:center; padding:20px;">No skills yet.</td></tr>'
+      : catRows.map(r => `
+        <tr>
+          <td><span class="type-badge" style="background:${typeColorVar(r.type)}">${r.type}</span></td>
+          <td class="stats-num-cell">${r.physical}</td>
+          <td class="stats-num-cell">${r.magic}</td>
+          <td class="stats-num-cell">${r.status}</td>
+          <td class="stats-num-cell">${r.total}</td>
+        </tr>
+      `).join('');
+  }
 
   /* ============ SKILLS ============ */
   function renderSkills(){
