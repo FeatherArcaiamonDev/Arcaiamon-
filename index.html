@@ -1378,13 +1378,13 @@
   <div id="panel-stats" style="display:none;">
     <div class="panel">
       <h2>Ascension Stages</h2>
-      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">How many Arcaiamon sit at each stage of their evolution line.</p>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">How many complete evolution lines end at each stage — a branch counts as its own line.</p>
       <div id="stats-ascension-stages" class="stats-badge-row"></div>
     </div>
 
     <div class="panel">
       <h2>Arcaiamon by Type</h2>
-      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Counts include an Arcaiamon under both its Type 1 and Type 2, if it has two.</p>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin:0 0 16px;">Only counts final evolutions (or standalones with no evolution line). Counted under both Type 1 and Type 2 if it has two.</p>
       <div id="stats-type-counts" class="stats-badge-row"></div>
     </div>
 
@@ -1872,9 +1872,13 @@
   }
 
   function renderStatistics(){
-    // Ascension stages
+    // Lines terminate at any mon with no further ascensions — either a standalone
+    // that never evolves, or a final evolution at the end of a branch.
+    const terminalMons = mons.filter(m => !(m.ascensions && m.ascensions.length));
+
+    // Ascension stages — how many complete lines end at each stage
     const stageCounts = {};
-    mons.forEach(m => {
+    terminalMons.forEach(m => {
       const stage = monAscensionStage(m);
       stageCounts[stage] = (stageCounts[stage] || 0) + 1;
     });
@@ -1884,17 +1888,17 @@
     for(let s = 1; s <= maxStage; s++){
       const badge = document.createElement('div');
       badge.className = 'stats-badge';
-      badge.innerHTML = `<span>Stage ${s}</span><span class="stats-count">${stageCounts[s] || 0}</span>`;
+      badge.innerHTML = `<span>${s}-Stage Lines</span><span class="stats-count">${stageCounts[s] || 0}</span>`;
       stageEl.appendChild(badge);
     }
     if(mons.length === 0){
       stageEl.innerHTML = '<span style="color:var(--text-dim); font-size:0.85rem;">No Arcaiamon yet.</span>';
     }
 
-    // Arcaiamon by type
+    // Arcaiamon by type — final evolutions only (or standalones with no evolution at all)
     const typeCounts = {};
     TYPES.forEach(t => { typeCounts[t] = 0; });
-    mons.forEach(m => {
+    terminalMons.forEach(m => {
       if(m.type1 && typeCounts[m.type1] !== undefined) typeCounts[m.type1]++;
       if(m.type2 && typeCounts[m.type2] !== undefined) typeCounts[m.type2]++;
     });
