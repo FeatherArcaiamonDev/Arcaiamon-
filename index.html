@@ -215,7 +215,7 @@
     white-space:nowrap;
   }
 
-  .desc-cell{ color:var(--text-dim); font-size:0.85rem; min-width:260px; max-width:480px; }
+  .desc-cell{ color:var(--text-dim); font-size:0.85rem; min-width:260px; max-width:480px; white-space:pre-wrap; }
   .num-cell{ font-variant-numeric:tabular-nums; color:var(--text); }
 
   .del-btn{
@@ -576,6 +576,7 @@
     pointer-events:none;
     box-shadow:0 4px 16px rgba(0,0,0,0.4);
     display:none;
+    white-space:pre-wrap;
   }
 
   .hex-labels text{
