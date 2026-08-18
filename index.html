@@ -825,8 +825,8 @@
   <div class="lock-box">
     <h1>Arcaiamon Dex</h1>
     <p>Enter a password to access the dex</p>
-    <input id="lock-input-admin" type="password" placeholder="Admin password (full access)" autocomplete="off">
-    <input id="lock-input-viewer" type="password" placeholder="Viewer password (view only)" autocomplete="off">
+    <input id="lock-input-admin" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" name="pw-a" placeholder="Admin password (full access)" autocomplete="off" style="-webkit-text-security:disc; text-security:disc;">
+    <input id="lock-input-viewer" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" name="pw-v" placeholder="Viewer password (view only)" autocomplete="off" style="-webkit-text-security:disc; text-security:disc;">
     <button class="lock-btn" id="lock-btn">Unlock</button>
     <div class="lock-error" id="lock-error"></div>
   </div>
