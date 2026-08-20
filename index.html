@@ -194,6 +194,7 @@
 
   tbody tr{ border-bottom:1px solid var(--line); }
   tbody tr:hover{ background:rgba(255,255,255,0.02); }
+  .skill-type-divider:hover{ background:rgba(255,255,255,0.04); }
   tbody td{ padding:11px 12px; vertical-align:top; }
 
   .type-badge{
@@ -1640,6 +1641,7 @@
   let saveTimeout = null;
   let editingSkillId = null;
   let skillSearchTerm = '';
+  let collapsedSkillTypes = new Set();
   let editingTalentId = null;
   let talentSearchTerm = '';
   let editingItemId = null;
@@ -2035,14 +2037,27 @@
       list.forEach(m => {
         if(m.type !== prevType){
           const typeCount = list.filter(s => s.type === m.type).length;
+          const isCollapsed = collapsedSkillTypes.has(m.type);
           const divTr = document.createElement('tr');
+          divTr.className = 'skill-type-divider';
+          divTr.dataset.type = m.type;
+          divTr.style.cursor = 'pointer';
           divTr.innerHTML = `<td colspan="9" style="padding:10px 0 4px;">
-            <div style="font-size:0.72rem; color:${typeColorVar(m.type)}; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">${m.type} (${typeCount})</div>
+            <div style="display:flex; align-items:center; gap:6px; font-size:0.72rem; color:${typeColorVar(m.type)}; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">
+              <span class="skill-type-chevron" style="display:inline-block; transition:transform 0.15s ease; transform:rotate(${isCollapsed ? '-90deg' : '0deg'});">▾</span>
+              <span>${m.type} (${typeCount})</span>
+            </div>
             <div style="height:3px; background:${typeColorVar(m.type)};"></div>
           </td>`;
+          divTr.addEventListener('click', () => {
+            if(collapsedSkillTypes.has(m.type)) collapsedSkillTypes.delete(m.type);
+            else collapsedSkillTypes.add(m.type);
+            renderSkills();
+          });
           tbody.appendChild(divTr);
           prevType = m.type;
         }
+        if(collapsedSkillTypes.has(m.type)) return;
         const tr = document.createElement('tr');
         tr.dataset.skillId = m.id;
         tr.innerHTML = `
