@@ -1641,7 +1641,21 @@
   let saveTimeout = null;
   let editingSkillId = null;
   let skillSearchTerm = '';
-  let collapsedSkillTypes = new Set();
+  const COLLAPSED_SKILL_TYPES_KEY = 'arcaiamon-collapsed-skill-types';
+  function loadCollapsedSkillTypes(){
+    try{
+      const raw = localStorage.getItem(COLLAPSED_SKILL_TYPES_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    }catch(err){
+      return new Set();
+    }
+  }
+  function saveCollapsedSkillTypes(){
+    try{
+      localStorage.setItem(COLLAPSED_SKILL_TYPES_KEY, JSON.stringify(Array.from(collapsedSkillTypes)));
+    }catch(err){ /* ignore storage errors */ }
+  }
+  let collapsedSkillTypes = loadCollapsedSkillTypes();
   let editingTalentId = null;
   let talentSearchTerm = '';
   let editingItemId = null;
@@ -2052,6 +2066,7 @@
           divTr.addEventListener('click', () => {
             if(collapsedSkillTypes.has(m.type)) collapsedSkillTypes.delete(m.type);
             else collapsedSkillTypes.add(m.type);
+            saveCollapsedSkillTypes();
             renderSkills();
           });
           tbody.appendChild(divTr);
