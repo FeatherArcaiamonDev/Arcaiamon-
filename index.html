@@ -1431,6 +1431,10 @@
             <th class="nosort">Physical</th>
             <th class="nosort">Magic</th>
             <th class="nosort">Status</th>
+            <th class="nosort">Tier 1</th>
+            <th class="nosort">Tier 2</th>
+            <th class="nosort">Tier 3</th>
+            <th class="nosort">Tier 4</th>
             <th class="nosort">Total</th>
           </tr></thead>
           <tbody id="stats-skill-cat-body"></tbody>
@@ -1975,16 +1979,24 @@
       const physical = group.filter(s => s.category === 'Physical').length;
       const magic = group.filter(s => s.category === 'Magic').length;
       const status = group.filter(s => s.category === 'Status').length;
-      return { type: t, physical, magic, status, total: group.length };
+      const tier1 = group.filter(s => (Number(s.tier) || 1) === 1).length;
+      const tier2 = group.filter(s => (Number(s.tier) || 1) === 2).length;
+      const tier3 = group.filter(s => (Number(s.tier) || 1) === 3).length;
+      const tier4 = group.filter(s => (Number(s.tier) || 1) === 4).length;
+      return { type: t, physical, magic, status, tier1, tier2, tier3, tier4, total: group.length };
     }).filter(Boolean);
     skillCatBody.innerHTML = catRows.length === 0
-      ? '<tr><td colspan="5" style="color:var(--text-dim); text-align:center; padding:20px;">No skills yet.</td></tr>'
+      ? '<tr><td colspan="9" style="color:var(--text-dim); text-align:center; padding:20px;">No skills yet.</td></tr>'
       : catRows.map(r => `
         <tr>
           <td><span class="type-badge" style="background:${typeColorVar(r.type)}">${r.type}</span></td>
           <td class="stats-num-cell">${r.physical}</td>
           <td class="stats-num-cell">${r.magic}</td>
           <td class="stats-num-cell">${r.status}</td>
+          <td class="stats-num-cell">${r.tier1}</td>
+          <td class="stats-num-cell">${r.tier2}</td>
+          <td class="stats-num-cell">${r.tier3}</td>
+          <td class="stats-num-cell">${r.tier4}</td>
           <td class="stats-num-cell">${r.total}</td>
         </tr>
       `).join('');
