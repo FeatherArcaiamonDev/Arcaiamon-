@@ -481,6 +481,14 @@
     align-items:center;
     gap:12px;
     margin-bottom:6px;
+    cursor:pointer;
+  }
+  .mon-head:hover h3{ color:var(--accent); }
+  .mon-expand-hint{
+    margin-left:auto;
+    font-size:0.68rem;
+    color:var(--text-dim);
+    flex-shrink:0;
   }
   .mon-head .icon-preview{ width:48px; height:48px; }
   .mon-head h3{
@@ -559,6 +567,91 @@
     max-height:210px;
     overflow-y:auto;
   }
+
+  .mon-skill-expand{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px solid var(--line);
+  }
+  .mon-skill-expand-empty{
+    font-size:0.8rem;
+    color:var(--text-dim);
+  }
+  .mon-skill-expand-type{
+    font-size:0.68rem;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin:12px 0 5px;
+  }
+  .mon-skill-expand-type:first-child{ margin-top:0; }
+  .mon-skill-expand-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:5px 0;
+    font-size:0.8rem;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .mon-skill-expand-row:last-child{ border-bottom:none; }
+  .mon-skill-expand-meta{
+    color:var(--text-dim);
+    font-size:0.72rem;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+
+  .skillassign-type-header{
+    font-size:0.72rem;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin:0 0 6px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .skillassign-type-header:first-child{ padding-top:0; border-top:none; }
+  .skillassign-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .skillassign-row-name{
+    flex:1;
+    min-width:150px;
+    font-size:0.85rem;
+  }
+  .skillassign-row-controls{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .skillassign-level-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .skillassign-level-wrap label{
+    font-size:0.72rem;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+  .skillassign-level-input{ width:64px; }
+  .skillassign-stone-label{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-size:0.78rem;
+    color:var(--text-dim);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .skillassign-stone-label input{ width:auto; accent-color:var(--accent); }
 
   /* Hover tooltip (positioned by JS to stay on-screen) */
   .tt{ cursor:default; }
@@ -862,6 +955,21 @@
   </div>
 </div>
 
+<div id="skillassign-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:22px; max-width:720px; width:100%; max-height:85vh; display:flex; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px;">
+      <h3 id="skillassign-title" style="margin:0; font-family:'Cinzel', serif; color:var(--accent);">Assign Skills</h3>
+      <button id="skillassign-close" style="background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer;">✕</button>
+    </div>
+    <p style="margin:0 0 12px; font-size:0.8rem; color:var(--text-dim);">Set a level, check Skill Stone, or both, to mark a skill as learned. Leave both blank to remove it.</p>
+    <input type="text" id="skillassign-search" placeholder="Search skills…" style="margin-bottom:12px; max-width:280px;">
+    <div id="skillassign-body" style="overflow-y:auto; flex:1; padding-right:6px;"></div>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="wide-btn" id="skillassign-done-btn">Done</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <h1>Arcaiamon Dex</h1>
   <p id="header-sub">Skill list &amp; sort tool <span class="sync-tag" id="sync-tag"></span><span class="viewer-badge">View only</span></p>
@@ -1148,9 +1256,8 @@
         <div class="field half"><label for="m-ascension3-method">How it ascends</label><input id="m-ascension3-method" type="text" placeholder="e.g. Level 30 near water"></div>
       </div>
 
-      <div class="field full" style="margin-top:16px;">
-        <label>Movepool (select from skill list)</label>
-        <div class="skill-picker" id="skill-picker"></div>
+      <div class="field full" style="margin-top:16px; padding:12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; font-size:0.8rem; color:var(--text-dim);">
+        Skills are assigned (with level / Skill Stone info) from the "Assign Skills" button on this Arcaiamon's card in the roster below, once it's saved.
       </div>
 
       <div class="field full" style="margin-top:16px;">
@@ -1576,7 +1683,7 @@
     panelStats.style.display = which === 'stats' ? 'block' : 'none';
     const subs = { skills: 'Skill list & sort tool ', talents: 'Talent library ', mons: 'Arcaiamon roster & stats ', items: 'Item catalog ', conditions: 'Status condition library ', fieldconditions: 'Field condition library ', typechart: 'Type effectiveness chart ', stats: 'Statistics ' };
     headerSub.childNodes[0].textContent = subs[which];
-    if(which === 'mons'){ renderSkillPicker(); renderTalentSelects(); renderAscensionSelects(); }
+    if(which === 'mons'){ renderTalentSelects(); renderAscensionSelects(); }
     if(which === 'typechart'){ renderTypeChart(); }
     if(which === 'stats'){ renderStatistics(); }
   }
@@ -1710,7 +1817,6 @@
     renderItems();
     renderConditions();
     renderFieldConditions();
-    renderSkillPicker();
     renderTalentSelects();
     renderMons();
   }
@@ -2121,7 +2227,7 @@
         if(!confirm(`Delete skill "${skill ? skill.name : ''}"? This can't be undone.`)) return;
         skills = skills.filter(m => m.id !== btn.dataset.id);
         if(editingSkillId === btn.dataset.id) resetSkillForm();
-        renderSkills(); renderSkillPicker(); saveShared();
+        renderSkills(); renderMons(); saveShared();
       });
     });
     tbody.querySelectorAll('.edit-skill-btn').forEach(btn => {
@@ -2204,7 +2310,7 @@
       });
     }
     resetSkillForm();
-    renderSkills(); renderSkillPicker(); saveShared();
+    renderSkills(); renderMons(); saveShared();
     if(wasEditingSkillId){
       setTimeout(() => {
         const target = document.querySelector(`tr[data-skill-id="${wasEditingSkillId}"]`);
@@ -2226,30 +2332,140 @@
     renderSkills();
   });
 
-  function renderSkillPicker(){
-    const picker = document.getElementById('skill-picker');
+  /* ============ SKILL ASSIGNMENT MODAL ============ */
+  function getMonSkillLearns(mon){
+    if(Array.isArray(mon.skillLearns)) return mon.skillLearns;
+    // Legacy data: a flat list of skill ids with no level/stone info yet.
+    return (mon.skillIds || []).map(id => ({ id, level: null, stone: false }));
+  }
+  function getMonSkillIds(mon){
+    return getMonSkillLearns(mon).map(sl => sl.id);
+  }
+
+  let skillAssignMonId = null;
+  let skillAssignState = new Map();
+  let skillAssignSearchTerm = '';
+
+  const skillAssignOverlay = document.getElementById('skillassign-modal-overlay');
+  const skillAssignTitle = document.getElementById('skillassign-title');
+  const skillAssignBody = document.getElementById('skillassign-body');
+  const skillAssignSearchInput = document.getElementById('skillassign-search');
+
+  function openSkillAssignModal(monId){
+    const mon = mons.find(m => m.id === monId);
+    if(!mon) return;
+    skillAssignMonId = monId;
+    skillAssignSearchTerm = '';
+    skillAssignSearchInput.value = '';
+    skillAssignState = new Map();
+    getMonSkillLearns(mon).forEach(sl => {
+      skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null, stone: !!sl.stone });
+    });
+    skillAssignTitle.textContent = `Assign Skills — ${mon.name}`;
+    renderSkillAssignBody();
+    skillAssignOverlay.style.display = 'flex';
+  }
+  function closeSkillAssignModal(){
+    skillAssignOverlay.style.display = 'none';
+    skillAssignMonId = null;
+  }
+
+  function renderSkillAssignBody(){
+    let list = [...skills].sort((a,b) =>
+      (a.type || '').localeCompare(b.type || '') ||
+      ((Number(a.tier) || 1) - (Number(b.tier) || 1)) ||
+      (a.name || '').localeCompare(b.name || '')
+    );
+    if(skillAssignSearchTerm){
+      const term = skillAssignSearchTerm.toLowerCase();
+      list = list.filter(s => (s.name || '').toLowerCase().includes(term));
+    }
     if(skills.length === 0){
-      picker.innerHTML = '<span style="color:var(--text-dim); font-size:0.8rem;">Add skills first on the Skills tab.</span>';
+      skillAssignBody.innerHTML = '<div style="color:var(--text-dim); font-size:0.85rem; padding:12px 0;">Add skills first on the Skills tab.</div>';
       return;
     }
-    picker.innerHTML = '';
-    skills.forEach(s => {
-      const chip = document.createElement('label');
-      chip.className = 'skill-chip tt' + (selectedSkillIds.has(s.id) ? ' selected' : '');
-      chip.dataset.tooltip = s.desc || 'No description';
-      chip.innerHTML = `
-        <input type="checkbox" ${selectedSkillIds.has(s.id) ? 'checked' : ''}>
-        <span class="dot" style="background:${typeColorVar(s.type)}"></span>
-        ${escapeHtml(s.name)}
+    if(list.length === 0){
+      skillAssignBody.innerHTML = '<div style="color:var(--text-dim); font-size:0.85rem; padding:12px 0;">No skills match your search.</div>';
+      return;
+    }
+    let html = '';
+    let prevType = null;
+    list.forEach(s => {
+      if(s.type !== prevType){
+        html += `<div class="skillassign-type-header" style="color:${typeColorVar(s.type)}">${s.type}</div>`;
+        prevType = s.type;
+      }
+      const state = skillAssignState.get(s.id) || { learned:false, level:null, stone:false };
+      html += `
+        <div class="skillassign-row" data-skill-id="${s.id}">
+          <label class="skillassign-stone-label">
+            <input type="checkbox" class="sa-learned" ${state.learned ? 'checked' : ''}> Learned
+          </label>
+          <div class="skillassign-row-name tt" data-tooltip="${escapeHtml(s.desc || 'No description')}">${escapeHtml(s.name)} <span class="cat-badge">T${s.tier || 1}</span></div>
+          <div class="skillassign-row-controls">
+            <div class="skillassign-level-wrap">
+              <label for="sa-level-${s.id}">Lvl</label>
+              <input type="number" min="1" class="skillassign-level-input sa-level" id="sa-level-${s.id}" value="${state.level ?? ''}" placeholder="—">
+            </div>
+            <label class="skillassign-stone-label">
+              <input type="checkbox" class="sa-stone" ${state.stone ? 'checked' : ''}> Stone
+            </label>
+          </div>
+        </div>
       `;
-      chip.querySelector('input').addEventListener('change', e => {
-        if(e.target.checked) selectedSkillIds.add(s.id);
-        else selectedSkillIds.delete(s.id);
-        chip.classList.toggle('selected', e.target.checked);
+    });
+    skillAssignBody.innerHTML = html;
+
+    skillAssignBody.querySelectorAll('.skillassign-row').forEach(row => {
+      const id = row.dataset.skillId;
+      const learnedInput = row.querySelector('.sa-learned');
+      const levelInput = row.querySelector('.sa-level');
+      const stoneInput = row.querySelector('.sa-stone');
+      function syncState(){
+        skillAssignState.set(id, {
+          learned: learnedInput.checked,
+          level: levelInput.value === '' ? null : Number(levelInput.value),
+          stone: stoneInput.checked
+        });
+      }
+      learnedInput.addEventListener('change', syncState);
+      levelInput.addEventListener('input', () => {
+        if(levelInput.value !== '') learnedInput.checked = true;
+        syncState();
       });
-      picker.appendChild(chip);
+      stoneInput.addEventListener('change', () => {
+        if(stoneInput.checked) learnedInput.checked = true;
+        syncState();
+      });
     });
   }
+
+  async function saveSkillAssignments(){
+    if(!skillAssignMonId) return;
+    const skillLearns = [];
+    skillAssignState.forEach((state, id) => {
+      if(state.learned) skillLearns.push({ id, level: state.level ?? null, stone: !!state.stone });
+    });
+    try{
+      setSyncStatus('Saving…', true);
+      await updateDoc(doc(db, MONS_COLLECTION, skillAssignMonId), { skillLearns });
+      setSyncStatus('Synced');
+    }catch(err){
+      console.error(err);
+      setSyncStatus('Sync failed — check connection');
+    }
+    closeSkillAssignModal();
+  }
+
+  document.getElementById('skillassign-close').addEventListener('click', closeSkillAssignModal);
+  document.getElementById('skillassign-done-btn').addEventListener('click', saveSkillAssignments);
+  skillAssignOverlay.addEventListener('click', e => {
+    if(e.target === skillAssignOverlay) closeSkillAssignModal();
+  });
+  skillAssignSearchInput.addEventListener('input', e => {
+    skillAssignSearchTerm = e.target.value.trim();
+    renderSkillAssignBody();
+  });
 
   /* ============ TALENTS ============ */
   const addTalentBtn = document.getElementById('add-talent-btn');
@@ -3032,8 +3248,8 @@
 
   /* ============ MONS ============ */
   let mons = [];
-  let selectedSkillIds = new Set();
   let editingMonId = null;
+  let expandedMonId = null;
   let monSearchTerm = '';
   let activeTypeFilters = new Set();
   let monSortMode = 'order';
@@ -3077,14 +3293,12 @@
     ['m-ascension1','m-ascension2','m-ascension3'].forEach(id => opSetById(id, ''));
     ['m-ascension1-method','m-ascension2-method','m-ascension3-method'].forEach(id => document.getElementById(id).value = '');
     statFieldIds.forEach(id => document.getElementById(id).value = '');
-    selectedSkillIds = new Set();
     pendingIconData = null;
     iconPreview.innerHTML = '<span class="placeholder">No icon</span>';
     editingMonId = null;
     addMonBtn.textContent = 'Add Arcaiamon';
     monFormTitle.textContent = 'Add an Arcaiamon';
     cancelEditBtn.style.display = 'none';
-    renderSkillPicker();
     renderAscensionSelects();
     updateStatTotalDisplay();
   }
@@ -3103,7 +3317,6 @@
     document.getElementById('m-pdef').value = mon.stats?.pdef ?? '';
     document.getElementById('m-mdef').value = mon.stats?.mdef ?? '';
     document.getElementById('m-agi').value = mon.stats?.agi ?? '';
-    selectedSkillIds = new Set(mon.skillIds || []);
     pendingIconData = mon.icon || null;
     iconPreview.innerHTML = mon.icon ? `<img src="${mon.icon}" alt="icon">` : '<span class="placeholder">No icon</span>';
     renderTalentSelects();
@@ -3122,7 +3335,6 @@
     addMonBtn.textContent = 'Save changes';
     monFormTitle.textContent = `Editing ${mon.name}`;
     cancelEditBtn.style.display = 'inline-block';
-    renderSkillPicker();
     updateStatTotalDisplay();
     document.getElementById('panel-mons').scrollIntoView({ behavior:'smooth', block:'start' });
   }
@@ -3157,7 +3369,6 @@
 
     const monData = {
       name, icon: pendingIconData || null, stats,
-      skillIds: Array.from(selectedSkillIds),
       order, statBudget, notes, type1, type2, talentIds,
       preAscensionId, ascensions
     };
@@ -3166,7 +3377,7 @@
       setSyncStatus('Saving…', true);
       const wasEditingId = editingMonId;
       if(editingMonId) await updateDoc(doc(db, MONS_COLLECTION, editingMonId), monData);
-      else await addDoc(collection(db, MONS_COLLECTION), monData);
+      else await addDoc(collection(db, MONS_COLLECTION), { ...monData, skillLearns: [] });
       setSyncStatus('Synced');
       resetMonForm();
       if(wasEditingId){
@@ -3325,11 +3536,8 @@
         `<span class="type-badge" style="background:${typeColorVar(t)}">${t}</span>`
       ).join('');
 
-      const skillTags = (mon.skillIds || []).map(id => {
-        const s = skills.find(sk => sk.id === id);
-        if(!s) return '';
-        return `<span class="type-badge tt" data-tooltip="${escapeHtml(s.desc || 'No description')}" style="background:${typeColorVar(s.type)}">${escapeHtml(s.name)}</span>`;
-      }).join('');
+      const monSkillLearns = getMonSkillLearns(mon);
+      const skillCount = monSkillLearns.length;
 
       const talentPills = (mon.talentIds || []).map(id => {
         const t = talents.find(tt => tt.id === id);
@@ -3343,6 +3551,42 @@
       const ascendEntries = (mon.ascensions || [])
         .map(a => ({ mon: mons.find(m => m.id === a.id), method: a.method }))
         .filter(e => e.mon);
+
+      let skillExpandHtml = '';
+      const isExpanded = mon.id === expandedMonId;
+      if(isExpanded){
+        const rows = monSkillLearns.map(sl => {
+          const s = skills.find(sk => sk.id === sl.id);
+          return s ? { skill: s, level: sl.level, stone: sl.stone } : null;
+        }).filter(Boolean).sort((a,b) =>
+          (a.skill.type || '').localeCompare(b.skill.type || '') ||
+          ((Number(a.skill.tier) || 1) - (Number(b.skill.tier) || 1)) ||
+          (a.skill.name || '').localeCompare(b.skill.name || '')
+        );
+        if(rows.length === 0){
+          skillExpandHtml = `<div class="mon-skill-expand"><div class="mon-skill-expand-empty">No skills assigned yet.</div></div>`;
+        } else {
+          let rowsHtml = '';
+          let prevSkillType = null;
+          rows.forEach(r => {
+            if(r.skill.type !== prevSkillType){
+              rowsHtml += `<div class="mon-skill-expand-type" style="color:${typeColorVar(r.skill.type)}">${r.skill.type}</div>`;
+              prevSkillType = r.skill.type;
+            }
+            const metaParts = [];
+            if(r.level !== null && r.level !== undefined && r.level !== '') metaParts.push(`Lv. ${r.level}`);
+            if(r.stone) metaParts.push('Stone');
+            const meta = metaParts.length ? metaParts.join(' · ') : '—';
+            rowsHtml += `
+              <div class="mon-skill-expand-row">
+                <span class="tt" data-tooltip="${escapeHtml(r.skill.desc || 'No description')}"><span class="type-badge" style="background:${typeColorVar(r.skill.type)}; font-size:0.68rem; padding:2px 8px;">${escapeHtml(r.skill.name)}</span> <span class="cat-badge">T${r.skill.tier || 1}</span></span>
+                <span class="mon-skill-expand-meta">${meta}</span>
+              </div>
+            `;
+          });
+          skillExpandHtml = `<div class="mon-skill-expand">${rowsHtml}</div>`;
+        }
+      }
 
       let evolutionHtml = '';
       if(preMon || ascendEntries.length){
@@ -3364,13 +3608,15 @@
         <div class="mon-card-actions admin-only">
           <button class="up-btn" data-idx="${idxInOrder}" title="Move up" ${idxInOrder <= 0 ? 'disabled' : ''}>▲</button>
           <button class="down-btn" data-idx="${idxInOrder}" title="Move down" ${idxInOrder >= orderSorted.length - 1 ? 'disabled' : ''}>▼</button>
+          <button class="assign-skills-btn" data-id="${mon.id}" title="Assign Skills">📖</button>
           <button class="edit-btn" data-id="${mon.id}" title="Edit">✎</button>
           <button class="danger mon-del" data-id="${mon.id}" title="Remove">✕</button>
         </div>
         <div class="order-badge">#${mon.order ?? '—'}</div>
-        <div class="mon-head">
+        <div class="mon-head" data-mon-id="${mon.id}">
           <div class="icon-preview">${iconHtml}</div>
           <h3>${escapeHtml(mon.name)}</h3>
+          <span class="mon-expand-hint">${isExpanded ? '▲ Hide' : `▼ Skills (${skillCount})`}</span>
         </div>
         <div class="mon-types">${typeBadges}</div>
         <div style="display:flex; gap:14px; align-items:flex-start;">
@@ -3379,10 +3625,24 @@
         </div>
         <div style="font-size:0.78rem; color:var(--text-dim); margin-top:4px;">Stat total: ${statSum}</div>
         <div class="mon-talents">${talentPills}</div>
-        <div class="mon-skills">${skillTags || '<span style="color:var(--text-dim); font-size:0.78rem;">No skills assigned</span>'}</div>
         ${evolutionHtml}
+        ${skillExpandHtml}
       `;
       grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('.mon-head').forEach(headEl => {
+      headEl.addEventListener('click', () => {
+        const id = headEl.dataset.monId;
+        expandedMonId = (expandedMonId === id) ? null : id;
+        renderMons();
+      });
+    });
+    grid.querySelectorAll('.assign-skills-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openSkillAssignModal(btn.dataset.id);
+      });
     });
 
     grid.querySelectorAll('.mon-del').forEach(btn => {
@@ -3497,8 +3757,15 @@
       const talentNames = (m.talentIds || []).map(id => talents.find(t => t.id === id)?.name).filter(Boolean);
       lines.push(`  Talents: ${talentNames.length ? talentNames.join(', ') : 'None'}`);
 
-      const skillNames = (m.skillIds || []).map(id => skills.find(s => s.id === id)?.name).filter(Boolean);
-      lines.push(`  Movepool: ${skillNames.length ? skillNames.join(', ') : 'None'}`);
+      const skillLines = getMonSkillLearns(m).map(sl => {
+        const s = skills.find(sk => sk.id === sl.id);
+        if(!s) return null;
+        const bits = [];
+        if(sl.level !== null && sl.level !== undefined && sl.level !== '') bits.push(`Lv ${sl.level}`);
+        if(sl.stone) bits.push('Stone');
+        return bits.length ? `${s.name} (${bits.join(' + ')})` : s.name;
+      }).filter(Boolean);
+      lines.push(`  Movepool: ${skillLines.length ? skillLines.join(', ') : 'None'}`);
 
       const preMon = m.preAscensionId ? mons.find(mm => mm.id === m.preAscensionId) : null;
       lines.push(`  Pre-Ascension: ${preMon ? preMon.name : 'None'}`);
@@ -3693,7 +3960,7 @@
 
       let stats = { hp:0, patk:0, matk:0, pdef:0, mdef:0, agi:0 };
       let talentNames = [];
-      let skillNames = [];
+      let skillEntries = [];
       let preAscensionName = '';
       let ascensionEntries = [];
       let notes = '';
@@ -3712,7 +3979,15 @@
           talentNames = v.toLowerCase() === 'none' || !v ? [] : v.split(',').map(s => s.trim()).filter(Boolean);
         } else if(mm){
           const v = mm[1].trim();
-          skillNames = v.toLowerCase() === 'none' || !v ? [] : v.split(',').map(s => s.trim()).filter(Boolean);
+          const rawEntries = v.toLowerCase() === 'none' || !v ? [] : v.split(',').map(s => s.trim()).filter(Boolean);
+          skillEntries = rawEntries.map(entry => {
+            const em = entry.match(/^(.+?)\s*\((.*)\)$/);
+            if(!em) return { name: entry, level: null, stone: false };
+            const inner = em[2];
+            const lvlMatch = inner.match(/Lv\s*(\d+)/i);
+            const stoneMatch = /Stone/i.test(inner);
+            return { name: em[1].trim(), level: lvlMatch ? Number(lvlMatch[1]) : null, stone: stoneMatch };
+          });
         } else if(pm){
           const v = pm[1].trim();
           preAscensionName = v.toLowerCase() === 'none' ? '' : v;
@@ -3730,7 +4005,7 @@
         }
       });
 
-      out.push({ order, name, type1, type2, stats, talentNames, skillNames, preAscensionName, ascensionEntries, notes });
+      out.push({ order, name, type1, type2, stats, talentNames, skillEntries, preAscensionName, ascensionEntries, notes });
     });
     return out;
   }
@@ -3823,7 +4098,10 @@
     importStatusEl.textContent = `Saving Arcaiamon (0/${parsedMons.length})…`;
     let done = 0;
     for(const pm of parsedMons){
-      const skillIds = pm.skillNames.map(n => skills.find(s => normName(s.name) === normName(n))?.id).filter(Boolean);
+      const skillLearns = pm.skillEntries.map(se => {
+        const skill = skills.find(s => normName(s.name) === normName(se.name));
+        return skill ? { id: skill.id, level: se.level, stone: se.stone } : null;
+      }).filter(Boolean);
       const talentIds = pm.talentNames.map(n => talents.find(t => normName(t.name) === normName(n))?.id).filter(Boolean).slice(0,3);
 
       const baseData = {
@@ -3833,7 +4111,7 @@
         type2: pm.type2,
         order: pm.order,
         notes: pm.notes,
-        skillIds,
+        skillLearns,
         talentIds
       };
 
@@ -3881,7 +4159,6 @@
     renderItems();
     renderConditions();
     renderFieldConditions();
-    renderSkillPicker();
     renderTalentSelects();
     renderMons();
 
