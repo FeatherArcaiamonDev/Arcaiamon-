@@ -603,6 +603,9 @@
   }
 
   .skillassign-type-header{
+    display:flex;
+    align-items:center;
+    gap:6px;
     font-size:0.72rem;
     font-weight:600;
     text-transform:uppercase;
@@ -610,8 +613,14 @@
     margin:0 0 6px;
     padding-top:14px;
     border-top:1px solid var(--line);
+    cursor:pointer;
+    user-select:none;
   }
   .skillassign-type-header:first-child{ padding-top:0; border-top:none; }
+  .skillassign-type-chevron{
+    display:inline-block;
+    transition:transform 0.15s ease;
+  }
   .skillassign-row{
     display:flex;
     align-items:center;
@@ -1767,6 +1776,23 @@
     }catch(err){ /* ignore storage errors */ }
   }
   let collapsedSkillTypes = loadCollapsedSkillTypes();
+
+  const COLLAPSED_ASSIGN_TYPES_KEY = 'arcaiamon-collapsed-assign-types';
+  function loadCollapsedAssignTypes(){
+    try{
+      const raw = localStorage.getItem(COLLAPSED_ASSIGN_TYPES_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    }catch(err){
+      return new Set();
+    }
+  }
+  function saveCollapsedAssignTypes(){
+    try{
+      localStorage.setItem(COLLAPSED_ASSIGN_TYPES_KEY, JSON.stringify(Array.from(collapsedAssignTypes)));
+    }catch(err){ /* ignore storage errors */ }
+  }
+  let collapsedAssignTypes = loadCollapsedAssignTypes();
+
   let editingTalentId = null;
   let talentSearchTerm = '';
   let editingItemId = null;
@@ -2392,9 +2418,15 @@
     let prevType = null;
     list.forEach(s => {
       if(s.type !== prevType){
-        html += `<div class="skillassign-type-header" style="color:${typeColorVar(s.type)}">${s.type}</div>`;
+        const typeCount = list.filter(sk => sk.type === s.type).length;
+        const isCollapsed = collapsedAssignTypes.has(s.type);
+        html += `<div class="skillassign-type-header" data-type="${escapeHtml(s.type)}" style="color:${typeColorVar(s.type)}">
+          <span class="skillassign-type-chevron" style="transform:rotate(${isCollapsed ? '-90deg' : '0deg'});">▾</span>
+          <span>${s.type} (${typeCount})</span>
+        </div>`;
         prevType = s.type;
       }
+      if(collapsedAssignTypes.has(s.type)) return;
       const state = skillAssignState.get(s.id) || { learned:false, level:null, stone:false };
       html += `
         <div class="skillassign-row" data-skill-id="${s.id}">
@@ -2415,6 +2447,16 @@
       `;
     });
     skillAssignBody.innerHTML = html;
+
+    skillAssignBody.querySelectorAll('.skillassign-type-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const type = header.dataset.type;
+        if(collapsedAssignTypes.has(type)) collapsedAssignTypes.delete(type);
+        else collapsedAssignTypes.add(type);
+        saveCollapsedAssignTypes();
+        renderSkillAssignBody();
+      });
+    });
 
     skillAssignBody.querySelectorAll('.skillassign-row').forEach(row => {
       const id = row.dataset.skillId;
