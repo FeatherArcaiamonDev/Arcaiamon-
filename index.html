@@ -2194,8 +2194,26 @@
 
     let list = [...skills];
     const numericFields = new Set(['power', 'accuracy', 'tier']);
-    if(sortKey){
-      list.sort((a,b) => {
+
+    if(skillSearchTerm){
+      const term = skillSearchTerm.toLowerCase();
+      list = list.filter(s => (s.name || '').toLowerCase().includes(term) || (s.desc || '').toLowerCase().includes(term));
+    }
+
+    const searchTerm = skillSearchTerm.toLowerCase();
+    list.sort((a,b) => {
+      // Type always comes first so the collapsible type dividers stay contiguous,
+      // regardless of search or column sort.
+      const typeCompare = (a.type || '').localeCompare(b.type || '') * (sortKey === 'type' ? sortDir : 1);
+      if(typeCompare !== 0) return typeCompare;
+
+      if(skillSearchTerm){
+        const aNameMatch = (a.name || '').toLowerCase().includes(searchTerm) ? 1 : 0;
+        const bNameMatch = (b.name || '').toLowerCase().includes(searchTerm) ? 1 : 0;
+        if(aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
+      }
+
+      if(sortKey && sortKey !== 'type'){
         let av = a[sortKey], bv = b[sortKey];
         if(numericFields.has(sortKey)){
           av = av === '' || av === null || av === undefined ? -Infinity : Number(av);
@@ -2206,35 +2224,19 @@
         }
         if(av < bv) return -1 * sortDir;
         if(av > bv) return 1 * sortDir;
-        return 0;
-      });
-    } else {
-      list.sort((a,b) => {
-        const typeCompare = (a.type || '').localeCompare(b.type || '');
-        if(typeCompare !== 0) return typeCompare;
-
-        const aTier = Number(a.tier) || 1;
-        const bTier = Number(b.tier) || 1;
-        if(aTier !== bTier) return aTier - bTier;
-
-        const aPower = a.power === '' || a.power === null || a.power === undefined ? -Infinity : Number(a.power);
-        const bPower = b.power === '' || b.power === null || b.power === undefined ? -Infinity : Number(b.power);
-        if(aPower !== bPower) return bPower - aPower;
-
         return (a.name || '').localeCompare(b.name || '');
-      });
-    }
+      }
 
-    if(skillSearchTerm){
-      const term = skillSearchTerm.toLowerCase();
-      list = list.filter(s => (s.name || '').toLowerCase().includes(term) || (s.desc || '').toLowerCase().includes(term));
-      list.sort((a,b) => {
-        const aNameMatch = (a.name || '').toLowerCase().includes(term) ? 1 : 0;
-        const bNameMatch = (b.name || '').toLowerCase().includes(term) ? 1 : 0;
-        if(aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
-        return (a.name || '').localeCompare(b.name || '');
-      });
-    }
+      const aTier = Number(a.tier) || 1;
+      const bTier = Number(b.tier) || 1;
+      if(aTier !== bTier) return aTier - bTier;
+
+      const aPower = a.power === '' || a.power === null || a.power === undefined ? -Infinity : Number(a.power);
+      const bPower = b.power === '' || b.power === null || b.power === undefined ? -Infinity : Number(b.power);
+      if(aPower !== bPower) return bPower - aPower;
+
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
     tbody.innerHTML = '';
     if(list.length === 0){
@@ -3159,6 +3161,17 @@
     }
     statusModalOverlay.classList.add('open');
   }
+  function openSkillDetailModal(skillId){
+    const skill = skills.find(s => s.id === skillId);
+    if(!skill) return;
+    statusModalTitle.textContent = skill.name;
+    statusModalTitle.style.color = typeColorVar(skill.type);
+    const powerText = (skill.power === '' || skill.power === null || skill.power === undefined) ? '—' : skill.power;
+    const accText = (skill.accuracy === '' || skill.accuracy === null || skill.accuracy === undefined) ? '—' : skill.accuracy + '%';
+    const metaLine = `${skill.type} · ${skill.category} · Pwr ${powerText} · Acc ${accText}${skill.stoneLearnable ? ' · Stone-learnable' : ''}`;
+    statusModalDesc.textContent = `${metaLine}\n\n${skill.desc || 'No description yet.'}`;
+    statusModalOverlay.classList.add('open');
+  }
   function closeStatusModal(){
     statusModalOverlay.classList.remove('open');
   }
@@ -3706,9 +3719,15 @@
             if(r.level !== null && r.level !== undefined && r.level !== '') metaParts.push(`Lv. ${r.level}`);
             if(r.stone) metaParts.push('Stone');
             const meta = metaParts.length ? metaParts.join(' · ') : '—';
+            const powerText = (r.skill.power === '' || r.skill.power === null || r.skill.power === undefined) ? '—' : r.skill.power;
+            const accText = (r.skill.accuracy === '' || r.skill.accuracy === null || r.skill.accuracy === undefined) ? '—' : r.skill.accuracy + '%';
             rowsHtml += `
               <div class="mon-skill-expand-row">
-                <span class="tt" data-tooltip="${escapeHtml(r.skill.desc || 'No description')}"><span class="type-badge" style="background:${typeColorVar(r.skill.type)}; font-size:0.68rem; padding:2px 8px;">${escapeHtml(r.skill.name)}</span> <span class="cat-badge">T${r.skill.tier || 1}</span></span>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span class="mon-skill-name-link" data-skill-id="${r.skill.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; font-weight:600; color:${typeColorVar(r.skill.type)};">${escapeHtml(r.skill.name)}</span>
+                  <span class="cat-badge">${escapeHtml(r.skill.category)}</span>
+                  <span style="color:var(--text-dim); font-size:0.72rem;">Pwr ${powerText} · Acc ${accText}</span>
+                </div>
                 <span class="mon-skill-expand-meta">${meta}</span>
               </div>
             `;
@@ -3771,6 +3790,12 @@
       btn.addEventListener('click', e => {
         e.stopPropagation();
         openSkillAssignModal(btn.dataset.id);
+      });
+    });
+    grid.querySelectorAll('.mon-skill-name-link').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        openSkillDetailModal(el.dataset.skillId);
       });
     });
 
