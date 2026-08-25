@@ -3700,33 +3700,38 @@
         const rows = monSkillLearns.map(sl => {
           const s = skills.find(sk => sk.id === sl.id);
           return s ? { skill: s, level: sl.level, stone: sl.stone } : null;
-        }).filter(Boolean).sort((a,b) =>
-          (a.skill.type || '').localeCompare(b.skill.type || '') ||
-          ((Number(a.skill.tier) || 1) - (Number(b.skill.tier) || 1)) ||
-          (a.skill.name || '').localeCompare(b.skill.name || '')
-        );
+        }).filter(Boolean).sort((a,b) => {
+          const aHasLevel = a.level !== null && a.level !== undefined && a.level !== '';
+          const bHasLevel = b.level !== null && b.level !== undefined && b.level !== '';
+          if(aHasLevel && bHasLevel){
+            const diff = Number(a.level) - Number(b.level);
+            if(diff !== 0) return diff;
+            return (a.skill.name || '').localeCompare(b.skill.name || '');
+          }
+          if(aHasLevel !== bHasLevel) return aHasLevel ? -1 : 1;
+          return (a.skill.name || '').localeCompare(b.skill.name || '');
+        });
         if(rows.length === 0){
           skillExpandHtml = `<div class="mon-skill-expand"><div class="mon-skill-expand-empty">No skills assigned yet.</div></div>`;
         } else {
           let rowsHtml = '';
-          let prevSkillType = null;
           rows.forEach(r => {
-            if(r.skill.type !== prevSkillType){
-              rowsHtml += `<div class="mon-skill-expand-type" style="color:${typeColorVar(r.skill.type)}">${r.skill.type}</div>`;
-              prevSkillType = r.skill.type;
-            }
             const metaParts = [];
             if(r.level !== null && r.level !== undefined && r.level !== '') metaParts.push(`Lv. ${r.level}`);
             if(r.stone) metaParts.push('Stone');
             const meta = metaParts.length ? metaParts.join(' · ') : '—';
-            const powerText = (r.skill.power === '' || r.skill.power === null || r.skill.power === undefined) ? '—' : r.skill.power;
             const accText = (r.skill.accuracy === '' || r.skill.accuracy === null || r.skill.accuracy === undefined) ? '—' : r.skill.accuracy + '%';
+            const isStatus = r.skill.category === 'Status';
+            const powerText = isStatus ? '' : (() => {
+              const p = (r.skill.power === '' || r.skill.power === null || r.skill.power === undefined) ? '—' : r.skill.power;
+              return `Pwr ${p} · `;
+            })();
             rowsHtml += `
               <div class="mon-skill-expand-row">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span class="mon-skill-name-link" data-skill-id="${r.skill.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; font-weight:600; color:${typeColorVar(r.skill.type)};">${escapeHtml(r.skill.name)}</span>
                   <span class="cat-badge">${escapeHtml(r.skill.category)}</span>
-                  <span style="color:var(--text-dim); font-size:0.72rem;">Pwr ${powerText} · Acc ${accText}</span>
+                  <span style="color:var(--text-dim); font-size:0.72rem;">${powerText}Acc ${accText}</span>
                 </div>
                 <span class="mon-skill-expand-meta">${meta}</span>
               </div>
