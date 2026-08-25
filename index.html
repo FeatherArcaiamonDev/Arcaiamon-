@@ -623,16 +623,27 @@
   }
   .skillassign-row{
     display:flex;
+    flex-direction:column;
+    gap:4px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .skillassign-row-main{
+    display:flex;
     align-items:center;
     gap:12px;
-    padding:8px 0;
-    border-bottom:1px solid var(--line);
     flex-wrap:wrap;
+    width:100%;
   }
   .skillassign-row-name{
     flex:1;
-    min-width:150px;
+    min-width:180px;
     font-size:0.85rem;
+  }
+  .skillassign-row-desc{
+    font-size:0.74rem;
+    color:var(--text-dim);
+    line-height:1.4;
   }
   .skillassign-row-controls{
     display:flex;
@@ -661,6 +672,45 @@
     white-space:nowrap;
   }
   .skillassign-stone-label input{ width:auto; accent-color:var(--accent); }
+
+  .skillassign-mon-info{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    padding:12px 14px;
+    margin-bottom:14px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .skillassign-mon-stats{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .skillassign-mon-stat{
+    font-size:0.74rem;
+    color:var(--text-dim);
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:3px 9px;
+    white-space:nowrap;
+  }
+  .skillassign-mon-stat b{ color:var(--text); font-variant-numeric:tabular-nums; }
+  .skillassign-mon-label{
+    font-size:0.66rem;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .skillassign-mon-talents{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
 
   /* Hover tooltip (positioned by JS to stay on-screen) */
   .tt{ cursor:default; }
@@ -965,12 +1015,13 @@
 </div>
 
 <div id="skillassign-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;">
-  <div style="background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:22px; max-width:720px; width:100%; max-height:85vh; display:flex; flex-direction:column;">
+  <div style="background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:22px; max-width:860px; width:100%; max-height:88vh; display:flex; flex-direction:column;">
     <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px;">
       <h3 id="skillassign-title" style="margin:0; font-family:'Cinzel', serif; color:var(--accent);">Assign Skills</h3>
       <button id="skillassign-close" style="background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer;">✕</button>
     </div>
     <p style="margin:0 0 12px; font-size:0.8rem; color:var(--text-dim);">Set a level, check Skill Stone, or both, to mark a skill as learned. Leave both blank to remove it.</p>
+    <div id="skillassign-mon-info" class="skillassign-mon-info"></div>
     <input type="text" id="skillassign-search" placeholder="Search skills…" style="margin-bottom:12px; max-width:280px;">
     <div id="skillassign-body" style="overflow-y:auto; flex:1; padding-right:6px;"></div>
     <div style="display:flex; gap:10px; margin-top:14px;">
@@ -2374,8 +2425,32 @@
 
   const skillAssignOverlay = document.getElementById('skillassign-modal-overlay');
   const skillAssignTitle = document.getElementById('skillassign-title');
+  const skillAssignMonInfo = document.getElementById('skillassign-mon-info');
   const skillAssignBody = document.getElementById('skillassign-body');
   const skillAssignSearchInput = document.getElementById('skillassign-search');
+
+  function renderSkillAssignMonInfo(mon){
+    const typeBadges = [mon.type1, mon.type2].filter(Boolean)
+      .map(t => `<span class="type-badge" style="background:${typeColorVar(t)}">${t}</span>`).join(' ');
+    const statLabels = { hp:'HP', patk:'P-ATK', matk:'M-ATK', pdef:'P-DEF', mdef:'M-DEF', agi:'AGI' };
+    const statsHtml = Object.keys(statLabels).map(k =>
+      `<span class="skillassign-mon-stat">${statLabels[k]} <b>${mon.stats?.[k] ?? 0}</b></span>`
+    ).join('');
+    const talentPills = (mon.talentIds || []).map(id => {
+      const t = talents.find(tt => tt.id === id);
+      return t ? `<span class="talent-pill tt" data-tooltip="${escapeHtml(t.desc || 'No description')}">${escapeHtml(t.name)}</span>` : '';
+    }).join('');
+    skillAssignMonInfo.innerHTML = `
+      <div style="flex:1; min-width:240px;">
+        <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">${typeBadges}</div>
+        <div class="skillassign-mon-stats">${statsHtml}</div>
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <div class="skillassign-mon-label">Abilities</div>
+        <div class="skillassign-mon-talents">${talentPills || '<span style="color:var(--text-dim); font-size:0.78rem;">None assigned</span>'}</div>
+      </div>
+    `;
+  }
 
   function openSkillAssignModal(monId){
     const mon = mons.find(m => m.id === monId);
@@ -2388,6 +2463,7 @@
       skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null, stone: !!sl.stone });
     });
     skillAssignTitle.textContent = `Assign Skills — ${mon.name}`;
+    renderSkillAssignMonInfo(mon);
     renderSkillAssignBody();
     skillAssignOverlay.style.display = 'flex';
   }
@@ -2428,21 +2504,32 @@
       }
       if(collapsedAssignTypes.has(s.type)) return;
       const state = skillAssignState.get(s.id) || { learned:false, level:null, stone:false };
+      const powerText = (s.power === '' || s.power === null || s.power === undefined) ? '—' : s.power;
+      const accText = (s.accuracy === '' || s.accuracy === null || s.accuracy === undefined) ? '—' : s.accuracy + '%';
       html += `
         <div class="skillassign-row" data-skill-id="${s.id}">
-          <label class="skillassign-stone-label">
-            <input type="checkbox" class="sa-learned" ${state.learned ? 'checked' : ''}> Learned
-          </label>
-          <div class="skillassign-row-name tt" data-tooltip="${escapeHtml(s.desc || 'No description')}">${escapeHtml(s.name)} <span class="cat-badge">T${s.tier || 1}</span></div>
-          <div class="skillassign-row-controls">
-            <div class="skillassign-level-wrap">
-              <label for="sa-level-${s.id}">Lvl</label>
-              <input type="number" min="1" class="skillassign-level-input sa-level" id="sa-level-${s.id}" value="${state.level ?? ''}" placeholder="—">
-            </div>
+          <div class="skillassign-row-main">
             <label class="skillassign-stone-label">
-              <input type="checkbox" class="sa-stone" ${state.stone ? 'checked' : ''}> Stone
+              <input type="checkbox" class="sa-learned" ${state.learned ? 'checked' : ''}> Learned
             </label>
+            <div class="skillassign-row-name">
+              ${escapeHtml(s.name)}
+              <span class="cat-badge">${escapeHtml(s.category)}</span>
+              <span class="cat-badge">T${s.tier || 1}</span>
+              <span style="color:var(--text-dim); font-size:0.76rem;"> · Pwr ${powerText} · Acc ${accText}</span>
+              ${s.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Stone-learnable</span>' : ''}
+            </div>
+            <div class="skillassign-row-controls">
+              <div class="skillassign-level-wrap">
+                <label for="sa-level-${s.id}">Lvl</label>
+                <input type="number" min="1" class="skillassign-level-input sa-level" id="sa-level-${s.id}" value="${state.level ?? ''}" placeholder="—">
+              </div>
+              <label class="skillassign-stone-label">
+                <input type="checkbox" class="sa-stone" ${state.stone ? 'checked' : ''}> Stone
+              </label>
+            </div>
           </div>
+          ${s.desc ? `<div class="skillassign-row-desc">${escapeHtml(s.desc)}</div>` : ''}
         </div>
       `;
     });
