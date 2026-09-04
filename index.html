@@ -1040,6 +1040,7 @@
     </div>
     <p style="margin:0 0 12px; font-size:0.8rem; color:var(--text-dim);">Set a level, check Skill Stone, or both, to mark a skill as learned. Leave both blank to remove it.</p>
     <div id="skillassign-mon-info" class="skillassign-mon-info"></div>
+    <button class="wide-btn secondary" id="skillassign-copy-pre-btn" style="display:none; margin-bottom:12px; align-self:flex-start;"></button>
     <input type="text" id="skillassign-search" placeholder="Search skills…" style="margin-bottom:12px; max-width:280px;">
     <div id="skillassign-body" style="overflow-y:auto; flex:1; padding-right:6px;"></div>
     <div style="display:flex; gap:10px; margin-top:14px;">
@@ -2460,6 +2461,7 @@
   }
 
   let skillAssignMonId = null;
+  let skillAssignPreMonId = null;
   let skillAssignState = new Map();
   let skillAssignSearchTerm = '';
 
@@ -2468,6 +2470,7 @@
   const skillAssignMonInfo = document.getElementById('skillassign-mon-info');
   const skillAssignBody = document.getElementById('skillassign-body');
   const skillAssignSearchInput = document.getElementById('skillassign-search');
+  const skillAssignCopyPreBtn = document.getElementById('skillassign-copy-pre-btn');
 
   function renderSkillAssignMonInfo(mon){
     const typeBadges = [mon.type1, mon.type2].filter(Boolean)
@@ -2504,13 +2507,38 @@
     });
     skillAssignTitle.textContent = `Assign Skills — ${mon.name}`;
     renderSkillAssignMonInfo(mon);
+
+    const preMon = mon.preAscensionId ? mons.find(m => m.id === mon.preAscensionId) : null;
+    skillAssignPreMonId = preMon ? preMon.id : null;
+    if(preMon && getMonSkillLearns(preMon).length > 0){
+      skillAssignCopyPreBtn.textContent = `⇩ Copy skills from ${preMon.name}`;
+      skillAssignCopyPreBtn.style.display = 'inline-block';
+    } else {
+      skillAssignCopyPreBtn.style.display = 'none';
+    }
+
     renderSkillAssignBody();
     skillAssignOverlay.style.display = 'flex';
   }
   function closeSkillAssignModal(){
     skillAssignOverlay.style.display = 'none';
     skillAssignMonId = null;
+    skillAssignPreMonId = null;
   }
+
+  function copySkillsFromPreAscension(){
+    if(!skillAssignPreMonId) return;
+    const preMon = mons.find(m => m.id === skillAssignPreMonId);
+    if(!preMon) return;
+    const preLearns = getMonSkillLearns(preMon);
+    if(preLearns.length === 0) return;
+    if(!confirm(`Copy ${preLearns.length} skill(s) and their levels from ${preMon.name}? This will overwrite matching entries here.`)) return;
+    preLearns.forEach(sl => {
+      skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null, stone: !!sl.stone });
+    });
+    renderSkillAssignBody();
+  }
+  skillAssignCopyPreBtn.addEventListener('click', copySkillsFromPreAscension);
 
   function renderSkillAssignBody(){
     let list = [...skills].sort((a,b) =>
