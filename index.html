@@ -617,6 +617,30 @@
     white-space:nowrap;
     flex-shrink:0;
   }
+  .mon-skill-expand-meta-edit{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-shrink:0;
+    flex-wrap:wrap;
+  }
+  .mon-skill-expand-meta-edit label{
+    font-size:0.7rem;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+  .mon-skill-level-input{
+    width:56px;
+    padding:4px 6px;
+    font-size:0.78rem;
+  }
+  .mon-skill-stone-inline{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  .mon-skill-stone-inline input{ width:auto; accent-color:var(--accent); }
 
   .skillassign-type-header{
     display:flex;
@@ -3782,24 +3806,35 @@
         } else {
           let rowsHtml = '';
           rows.forEach(r => {
-            const metaParts = [];
-            if(r.level !== null && r.level !== undefined && r.level !== '') metaParts.push(`Lv. ${r.level}`);
-            if(r.stone) metaParts.push('Stone');
-            const meta = metaParts.length ? metaParts.join(' · ') : '—';
+            const levelVal = (r.level !== null && r.level !== undefined && r.level !== '') ? r.level : '';
             const accText = (r.skill.accuracy === '' || r.skill.accuracy === null || r.skill.accuracy === undefined) ? '—' : r.skill.accuracy + '%';
             const isStatus = r.skill.category === 'Status';
             const powerText = isStatus ? '' : (() => {
               const p = (r.skill.power === '' || r.skill.power === null || r.skill.power === undefined) ? '—' : r.skill.power;
               return `Pwr ${p} · `;
             })();
+            const metaHtml = isViewerMode
+              ? (() => {
+                  const metaParts = [];
+                  if(levelVal !== '') metaParts.push(`Lv. ${levelVal}`);
+                  if(r.stone) metaParts.push('Stone');
+                  return `<span class="mon-skill-expand-meta">${metaParts.length ? metaParts.join(' · ') : '—'}</span>`;
+                })()
+              : `<span class="mon-skill-expand-meta-edit">
+                  <label for="msl-${mon.id}-${r.skill.id}">Lvl</label>
+                  <input type="number" min="1" class="mon-skill-level-input" id="msl-${mon.id}-${r.skill.id}" value="${levelVal}" placeholder="—">
+                  <label class="mon-skill-stone-inline">
+                    <input type="checkbox" class="mon-skill-stone-input" ${r.stone ? 'checked' : ''}> Stone
+                  </label>
+                </span>`;
             rowsHtml += `
-              <div class="mon-skill-expand-row">
+              <div class="mon-skill-expand-row" data-mon-id="${mon.id}" data-skill-id="${r.skill.id}">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span class="mon-skill-name-link" data-skill-id="${r.skill.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; font-weight:600; color:${typeColorVar(r.skill.type)};">${escapeHtml(r.skill.name)}</span>
                   <span class="cat-badge">${escapeHtml(r.skill.category)}</span>
                   <span style="color:var(--text-dim); font-size:0.72rem;">${powerText}Acc ${accText}</span>
                 </div>
-                <span class="mon-skill-expand-meta">${meta}</span>
+                ${metaHtml}
               </div>
             `;
           });
@@ -3868,6 +3903,38 @@
         e.stopPropagation();
         openSkillDetailModal(el.dataset.skillId);
       });
+    });
+    grid.querySelectorAll('.mon-skill-expand-row').forEach(rowEl => {
+      const levelInput = rowEl.querySelector('.mon-skill-level-input');
+      const stoneInput = rowEl.querySelector('.mon-skill-stone-input');
+      if(!levelInput && !stoneInput) return;
+      const { monId, skillId } = rowEl.dataset;
+      async function saveInlineSkillLevel(){
+        const targetMon = mons.find(m => m.id === monId);
+        if(!targetMon) return;
+        const newLevel = levelInput.value === '' ? null : Number(levelInput.value);
+        const newStone = stoneInput.checked;
+        const updatedLearns = getMonSkillLearns(targetMon).map(sl =>
+          sl.id === skillId ? { ...sl, level: newLevel, stone: newStone } : sl
+        );
+        try{
+          setSyncStatus('Saving…', true);
+          await updateDoc(doc(db, MONS_COLLECTION, monId), { skillLearns: updatedLearns });
+          setSyncStatus('Synced');
+        }catch(err){
+          console.error(err);
+          setSyncStatus('Sync failed — check connection');
+        }
+      }
+      if(levelInput){
+        levelInput.addEventListener('click', e => e.stopPropagation());
+        levelInput.addEventListener('change', saveInlineSkillLevel);
+        levelInput.addEventListener('keydown', e => { if(e.key === 'Enter') levelInput.blur(); });
+      }
+      if(stoneInput){
+        stoneInput.addEventListener('click', e => e.stopPropagation());
+        stoneInput.addEventListener('change', saveInlineSkillLevel);
+      }
     });
 
     grid.querySelectorAll('.mon-del').forEach(btn => {
