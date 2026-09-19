@@ -713,45 +713,6 @@
   }
   .skillassign-stone-label input{ width:auto; accent-color:var(--accent); }
 
-  .skillassign-mon-info{
-    display:flex;
-    gap:20px;
-    flex-wrap:wrap;
-    align-items:flex-start;
-    padding:12px 14px;
-    margin-bottom:14px;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:8px;
-  }
-  .skillassign-mon-stats{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-  }
-  .skillassign-mon-stat{
-    font-size:0.74rem;
-    color:var(--text-dim);
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:3px 9px;
-    white-space:nowrap;
-  }
-  .skillassign-mon-stat b{ color:var(--text); font-variant-numeric:tabular-nums; }
-  .skillassign-mon-label{
-    font-size:0.66rem;
-    text-transform:uppercase;
-    letter-spacing:0.05em;
-    color:var(--text-dim);
-    margin-bottom:6px;
-  }
-  .skillassign-mon-talents{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-  }
-
   /* Hover tooltip (positioned by JS to stay on-screen) */
   .tt{ cursor:default; }
   #global-tooltip{
@@ -1063,7 +1024,6 @@
       <button id="skillassign-close" style="background:none; border:none; color:var(--text-dim); font-size:1.1rem; cursor:pointer;">✕</button>
     </div>
     <p style="margin:0 0 12px; font-size:0.8rem; color:var(--text-dim);">Set a level, check Skill Stone, or both, to mark a skill as learned. Leave both blank to remove it.</p>
-    <div id="skillassign-mon-info" class="skillassign-mon-info"></div>
     <button class="wide-btn secondary" id="skillassign-copy-pre-btn" style="display:none; margin-bottom:12px; align-self:flex-start;"></button>
     <input type="text" id="skillassign-search" placeholder="Search skills…" style="margin-bottom:12px; max-width:280px;">
     <div id="skillassign-body" style="overflow-y:auto; flex:1; padding-right:6px;"></div>
@@ -2491,33 +2451,9 @@
 
   const skillAssignOverlay = document.getElementById('skillassign-modal-overlay');
   const skillAssignTitle = document.getElementById('skillassign-title');
-  const skillAssignMonInfo = document.getElementById('skillassign-mon-info');
   const skillAssignBody = document.getElementById('skillassign-body');
   const skillAssignSearchInput = document.getElementById('skillassign-search');
   const skillAssignCopyPreBtn = document.getElementById('skillassign-copy-pre-btn');
-
-  function renderSkillAssignMonInfo(mon){
-    const typeBadges = [mon.type1, mon.type2].filter(Boolean)
-      .map(t => `<span class="type-badge" style="background:${typeColorVar(t)}">${t}</span>`).join(' ');
-    const statLabels = { hp:'HP', patk:'P-ATK', matk:'M-ATK', pdef:'P-DEF', mdef:'M-DEF', agi:'AGI' };
-    const statsHtml = Object.keys(statLabels).map(k =>
-      `<span class="skillassign-mon-stat">${statLabels[k]} <b>${mon.stats?.[k] ?? 0}</b></span>`
-    ).join('');
-    const talentPills = (mon.talentIds || []).map(id => {
-      const t = talents.find(tt => tt.id === id);
-      return t ? `<span class="talent-pill tt" data-tooltip="${escapeHtml(t.desc || 'No description')}">${escapeHtml(t.name)}</span>` : '';
-    }).join('');
-    skillAssignMonInfo.innerHTML = `
-      <div style="flex:1; min-width:240px;">
-        <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">${typeBadges}</div>
-        <div class="skillassign-mon-stats">${statsHtml}</div>
-      </div>
-      <div style="flex:1; min-width:180px;">
-        <div class="skillassign-mon-label">Abilities</div>
-        <div class="skillassign-mon-talents">${talentPills || '<span style="color:var(--text-dim); font-size:0.78rem;">None assigned</span>'}</div>
-      </div>
-    `;
-  }
 
   function openSkillAssignModal(monId){
     const mon = mons.find(m => m.id === monId);
@@ -2530,7 +2466,6 @@
       skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null, stone: !!sl.stone });
     });
     skillAssignTitle.textContent = `Assign Skills — ${mon.name}`;
-    renderSkillAssignMonInfo(mon);
 
     const preMon = mon.preAscensionId ? mons.find(m => m.id === mon.preAscensionId) : null;
     skillAssignPreMonId = preMon ? preMon.id : null;
