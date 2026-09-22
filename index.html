@@ -634,13 +634,6 @@
     padding:4px 6px;
     font-size:0.78rem;
   }
-  .mon-skill-stone-inline{
-    display:flex;
-    align-items:center;
-    gap:4px;
-    cursor:pointer;
-  }
-  .mon-skill-stone-inline input{ width:auto; accent-color:var(--accent); }
 
   .skillassign-type-header{
     display:flex;
@@ -2463,7 +2456,7 @@
     skillAssignSearchInput.value = '';
     skillAssignState = new Map();
     getMonSkillLearns(mon).forEach(sl => {
-      skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null, stone: !!sl.stone });
+      skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null });
     });
     skillAssignTitle.textContent = `Assign Skills — ${mon.name}`;
 
@@ -2493,7 +2486,7 @@
     if(preLearns.length === 0) return;
     if(!confirm(`Copy ${preLearns.length} skill(s) and their levels from ${preMon.name}? This will overwrite matching entries here.`)) return;
     preLearns.forEach(sl => {
-      skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null, stone: !!sl.stone });
+      skillAssignState.set(sl.id, { learned: true, level: sl.level ?? null });
     });
     renderSkillAssignBody();
   }
@@ -2530,7 +2523,7 @@
         prevType = s.type;
       }
       if(collapsedAssignTypes.has(s.type)) return;
-      const state = skillAssignState.get(s.id) || { learned:false, level:null, stone:false };
+      const state = skillAssignState.get(s.id) || { learned:false, level:null };
       const powerText = (s.power === '' || s.power === null || s.power === undefined) ? '—' : s.power;
       const accText = (s.accuracy === '' || s.accuracy === null || s.accuracy === undefined) ? '—' : s.accuracy + '%';
       html += `
@@ -2551,9 +2544,6 @@
                 <label for="sa-level-${s.id}">Lvl</label>
                 <input type="number" min="1" class="skillassign-level-input sa-level" id="sa-level-${s.id}" value="${state.level ?? ''}" placeholder="—">
               </div>
-              <label class="skillassign-stone-label">
-                <input type="checkbox" class="sa-stone" ${state.stone ? 'checked' : ''}> Stone
-              </label>
             </div>
           </div>
           ${s.desc ? `<div class="skillassign-row-desc">${escapeHtml(s.desc)}</div>` : ''}
@@ -2576,21 +2566,15 @@
       const id = row.dataset.skillId;
       const learnedInput = row.querySelector('.sa-learned');
       const levelInput = row.querySelector('.sa-level');
-      const stoneInput = row.querySelector('.sa-stone');
       function syncState(){
         skillAssignState.set(id, {
           learned: learnedInput.checked,
-          level: levelInput.value === '' ? null : Number(levelInput.value),
-          stone: stoneInput.checked
+          level: levelInput.value === '' ? null : Number(levelInput.value)
         });
       }
       learnedInput.addEventListener('change', syncState);
       levelInput.addEventListener('input', () => {
         if(levelInput.value !== '') learnedInput.checked = true;
-        syncState();
-      });
-      stoneInput.addEventListener('change', () => {
-        if(stoneInput.checked) learnedInput.checked = true;
         syncState();
       });
     });
@@ -2600,7 +2584,10 @@
     if(!skillAssignMonId) return;
     const skillLearns = [];
     skillAssignState.forEach((state, id) => {
-      if(state.learned) skillLearns.push({ id, level: state.level ?? null, stone: !!state.stone });
+      if(state.learned){
+        const skill = skills.find(s => s.id === id);
+        skillLearns.push({ id, level: state.level ?? null, stone: !!(skill && skill.stoneLearnable) });
+      }
     });
     try{
       setSyncStatus('Saving…', true);
@@ -3724,7 +3711,7 @@
       if(isExpanded){
         const rows = monSkillLearns.map(sl => {
           const s = skills.find(sk => sk.id === sl.id);
-          return s ? { skill: s, level: sl.level, stone: sl.stone } : null;
+          return s ? { skill: s, level: sl.level } : null;
         }).filter(Boolean).sort((a,b) => {
           const aHasLevel = a.level !== null && a.level !== undefined && a.level !== '';
           const bHasLevel = b.level !== null && b.level !== undefined && b.level !== '';
@@ -3748,25 +3735,19 @@
               const p = (r.skill.power === '' || r.skill.power === null || r.skill.power === undefined) ? '—' : r.skill.power;
               return `Pwr ${p} · `;
             })();
+            const stoneTag = r.skill.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Stone-learnable</span>' : '';
             const metaHtml = isViewerMode
-              ? (() => {
-                  const metaParts = [];
-                  if(levelVal !== '') metaParts.push(`Lv. ${levelVal}`);
-                  if(r.stone) metaParts.push('Stone');
-                  return `<span class="mon-skill-expand-meta">${metaParts.length ? metaParts.join(' · ') : '—'}</span>`;
-                })()
+              ? `<span class="mon-skill-expand-meta">${levelVal !== '' ? `Lv. ${levelVal}` : '—'}</span>`
               : `<span class="mon-skill-expand-meta-edit">
                   <label for="msl-${mon.id}-${r.skill.id}">Lvl</label>
                   <input type="number" min="1" class="mon-skill-level-input" id="msl-${mon.id}-${r.skill.id}" value="${levelVal}" placeholder="—">
-                  <label class="mon-skill-stone-inline">
-                    <input type="checkbox" class="mon-skill-stone-input" ${r.stone ? 'checked' : ''}> Stone
-                  </label>
                 </span>`;
             rowsHtml += `
               <div class="mon-skill-expand-row" data-mon-id="${mon.id}" data-skill-id="${r.skill.id}">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span class="mon-skill-name-link" data-skill-id="${r.skill.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; font-weight:600; color:${typeColorVar(r.skill.type)};">${escapeHtml(r.skill.name)}</span>
                   <span class="cat-badge">${escapeHtml(r.skill.category)}</span>
+                  ${stoneTag}
                   <span style="color:var(--text-dim); font-size:0.72rem;">${powerText}Acc ${accText}</span>
                 </div>
                 ${metaHtml}
@@ -3841,16 +3822,15 @@
     });
     grid.querySelectorAll('.mon-skill-expand-row').forEach(rowEl => {
       const levelInput = rowEl.querySelector('.mon-skill-level-input');
-      const stoneInput = rowEl.querySelector('.mon-skill-stone-input');
-      if(!levelInput && !stoneInput) return;
+      if(!levelInput) return;
       const { monId, skillId } = rowEl.dataset;
       async function saveInlineSkillLevel(){
         const targetMon = mons.find(m => m.id === monId);
         if(!targetMon) return;
+        const skill = skills.find(s => s.id === skillId);
         const newLevel = levelInput.value === '' ? null : Number(levelInput.value);
-        const newStone = stoneInput.checked;
         const updatedLearns = getMonSkillLearns(targetMon).map(sl =>
-          sl.id === skillId ? { ...sl, level: newLevel, stone: newStone } : sl
+          sl.id === skillId ? { ...sl, level: newLevel, stone: !!(skill && skill.stoneLearnable) } : sl
         );
         try{
           setSyncStatus('Saving…', true);
@@ -3861,15 +3841,9 @@
           setSyncStatus('Sync failed — check connection');
         }
       }
-      if(levelInput){
-        levelInput.addEventListener('click', e => e.stopPropagation());
-        levelInput.addEventListener('change', saveInlineSkillLevel);
-        levelInput.addEventListener('keydown', e => { if(e.key === 'Enter') levelInput.blur(); });
-      }
-      if(stoneInput){
-        stoneInput.addEventListener('click', e => e.stopPropagation());
-        stoneInput.addEventListener('change', saveInlineSkillLevel);
-      }
+      levelInput.addEventListener('click', e => e.stopPropagation());
+      levelInput.addEventListener('change', saveInlineSkillLevel);
+      levelInput.addEventListener('keydown', e => { if(e.key === 'Enter') levelInput.blur(); });
     });
 
     grid.querySelectorAll('.mon-del').forEach(btn => {
@@ -3989,7 +3963,7 @@
         if(!s) return null;
         const bits = [];
         if(sl.level !== null && sl.level !== undefined && sl.level !== '') bits.push(`Lv ${sl.level}`);
-        if(sl.stone) bits.push('Stone');
+        if(s.stoneLearnable) bits.push('Stone');
         return bits.length ? `${s.name} (${bits.join(' + ')})` : s.name;
       }).filter(Boolean);
       lines.push(`  Movepool: ${skillLines.length ? skillLines.join(', ') : 'None'}`);
@@ -4339,7 +4313,7 @@
     for(const pm of parsedMons){
       const skillLearns = pm.skillEntries.map(se => {
         const skill = skills.find(s => normName(s.name) === normName(se.name));
-        return skill ? { id: skill.id, level: se.level, stone: se.stone } : null;
+        return skill ? { id: skill.id, level: se.level, stone: !!skill.stoneLearnable } : null;
       }).filter(Boolean);
       const talentIds = pm.talentNames.map(n => talents.find(t => normName(t.name) === normName(n))?.id).filter(Boolean).slice(0,3);
 
