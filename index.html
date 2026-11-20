@@ -105,7 +105,7 @@
 
   .form-grid{
     display:grid;
-    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 1fr 1.6fr 1.2fr auto;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.8fr 0.7fr 0.8fr 1fr 1.6fr 1.2fr auto;
     gap:10px;
     align-items:end;
   }
@@ -1086,6 +1086,10 @@
           </select>
         </div>
         <div class="field">
+          <label for="f-range">Range</label>
+          <select id="f-range"><option value="">—</option><option value="Near">Near</option><option value="Med">Med</option><option value="Far">Far</option></select>
+        </div>
+        <div class="field">
           <label for="f-stone">Skill Stone</label>
           <label style="display:flex; align-items:center; gap:8px; padding:9px 10px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; cursor:pointer; height:38px; box-sizing:border-box;">
             <input id="f-stone" type="checkbox" style="width:auto; accent-color:var(--accent);">
@@ -1121,6 +1125,7 @@
               <th data-key="power">Power<span class="arrow"></span></th>
               <th data-key="accuracy">Accuracy<span class="arrow"></span></th>
               <th data-key="tier">Tier<span class="arrow"></span></th>
+              <th data-key="range">Range<span class="arrow"></span></th>
               <th class="nosort">Stone</th>
               <th class="nosort">Description</th>
               <th class="nosort"></th>
@@ -1225,6 +1230,10 @@
         <div class="field">
           <label for="m-order">List position</label>
           <input id="m-order" type="number" min="1" placeholder="1">
+        </div>
+        <div class="field">
+          <label for="m-range">Range</label>
+          <select id="m-range"><option value="">—</option><option value="Near">Near</option><option value="Med">Med</option><option value="Far">Far</option></select>
         </div>
         <div class="field">
           <label for="m-budget">Stat total budget</label>
@@ -2185,7 +2194,7 @@
       return { type: t, physical, magic, status, tier1, tier2, tier3, tier4, total: group.length };
     }).filter(Boolean);
     skillCatBody.innerHTML = catRows.length === 0
-      ? '<tr><td colspan="9" style="color:var(--text-dim); text-align:center; padding:20px;">No skills yet.</td></tr>'
+      ? '<tr><td colspan="10" style="color:var(--text-dim); text-align:center; padding:20px;">No skills yet.</td></tr>'
       : catRows.map(r => `
         <tr>
           <td><span class="type-badge" style="background:${typeColorVar(r.type)}">${r.type}</span></td>
@@ -2269,7 +2278,7 @@
           divTr.className = 'skill-type-divider';
           divTr.dataset.type = m.type;
           divTr.style.cursor = 'pointer';
-          divTr.innerHTML = `<td colspan="9" style="padding:10px 0 4px;">
+          divTr.innerHTML = `<td colspan="10" style="padding:10px 0 4px;">
             <div style="display:flex; align-items:center; gap:6px; font-size:0.72rem; color:${typeColorVar(m.type)}; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">
               <span class="skill-type-chevron" style="display:inline-block; transition:transform 0.15s ease; transform:rotate(${isCollapsed ? '-90deg' : '0deg'});">▾</span>
               <span>${m.type} (${typeCount})</span>
@@ -2295,6 +2304,7 @@
           <td class="num-cell">${m.power === '' ? '—' : m.power}</td>
           <td class="num-cell">${m.accuracy === '' ? '—' : m.accuracy + '%'}</td>
           <td><span class="cat-badge">T${m.tier || 1}</span></td>
+          <td>${m.range ? `<span class="cat-badge">${escapeHtml(m.range)}</span>` : '<span style="color:var(--text-dim);">—</span>'}</td>
           <td>${m.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Yes</span>' : '<span style="color:var(--text-dim);">—</span>'}</td>
           <td class="desc-cell">${highlightDesc(m.desc) || '—'}</td>
           <td class="admin-only" style="white-space:nowrap;">
@@ -2351,6 +2361,7 @@
     document.getElementById('f-cat').selectedIndex = 0;
     document.getElementById('f-tier').value = '1';
     document.getElementById('f-stone').checked = false;
+    document.getElementById('f-range').value = '';
     editingSkillId = null;
     addSkillBtn.textContent = '+';
     addSkillBtn.title = 'Add skill';
@@ -2366,6 +2377,7 @@
     document.getElementById('f-acc').value = skill.accuracy ?? '';
     document.getElementById('f-tier').value = String(skill.tier || 1);
     document.getElementById('f-stone').checked = !!skill.stoneLearnable;
+    document.getElementById('f-range').value = skill.range || '';
     document.getElementById('f-desc').value = skill.desc || '';
     document.getElementById('f-tags').value = (skill.tags || []).join(', ');
     addSkillBtn.textContent = '✓';
@@ -2384,6 +2396,7 @@
     const accuracy = document.getElementById('f-acc').value;
     const tier = Number(document.getElementById('f-tier').value) || 1;
     const stoneLearnable = document.getElementById('f-stone').checked;
+    const range = document.getElementById('f-range').value;
     const desc = document.getElementById('f-desc').value.trim();
     const tags = parseTagsInput(document.getElementById('f-tags').value);
     if(!name){ document.getElementById('f-name').focus(); return; }
@@ -2394,14 +2407,14 @@
       if(idx !== -1){
         skills[idx] = { ...skills[idx], name, type, category,
           power: power === '' ? '' : Number(power),
-          accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc, tags };
+          accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, range, desc, tags };
       }
     } else {
       skills.push({
         id: Date.now().toString() + Math.random().toString(36).slice(2,6),
         name, type, category,
         power: power === '' ? '' : Number(power),
-        accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, desc, tags
+        accuracy: accuracy === '' ? '' : Number(accuracy), tier, stoneLearnable, range, desc, tags
       });
     }
     resetSkillForm();
@@ -2535,7 +2548,7 @@
             <div class="skillassign-row-name">
               ${escapeHtml(s.name)}
               <span class="cat-badge">${escapeHtml(s.category)}</span>
-              <span class="cat-badge">T${s.tier || 1}</span>
+              ${s.range ? `<span class="cat-badge">${escapeHtml(s.range)}</span>` : ''}
               <span style="color:var(--text-dim); font-size:0.76rem;"> · Pwr ${powerText} · Acc ${accText}</span>
               ${s.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Stone-learnable</span>' : ''}
             </div>
@@ -3180,7 +3193,7 @@
     statusModalTitle.style.color = typeColorVar(skill.type);
     const powerText = (skill.power === '' || skill.power === null || skill.power === undefined) ? '—' : skill.power;
     const accText = (skill.accuracy === '' || skill.accuracy === null || skill.accuracy === undefined) ? '—' : skill.accuracy + '%';
-    const metaLine = `${skill.type} · ${skill.category} · Pwr ${powerText} · Acc ${accText}${skill.stoneLearnable ? ' · Stone-learnable' : ''}`;
+    const metaLine = `${skill.type} · ${skill.category} · Pwr ${powerText} · Acc ${accText}${skill.range ? ' · ' + skill.range : ''}${skill.stoneLearnable ? ' · Stone-learnable' : ''}`;
     statusModalDesc.textContent = `${metaLine}\n\n${skill.desc || 'No description yet.'}`;
     statusModalOverlay.classList.add('open');
   }
@@ -3439,6 +3452,7 @@
     document.getElementById('m-name').value = '';
     document.getElementById('m-order').value = '';
     document.getElementById('m-budget').value = '';
+    document.getElementById('m-range').value = '';
     document.getElementById('m-notes').value = '';
     document.getElementById('m-type1').selectedIndex = 0;
     document.getElementById('m-type2').value = '';
@@ -3462,6 +3476,7 @@
     document.getElementById('m-name').value = mon.name || '';
     document.getElementById('m-order').value = mon.order ?? '';
     document.getElementById('m-budget').value = mon.statBudget ?? '';
+    document.getElementById('m-range').value = mon.range || '';
     document.getElementById('m-notes').value = mon.notes ?? '';
     document.getElementById('m-type1').value = mon.type1 || TYPES[0];
     document.getElementById('m-type2').value = mon.type2 || '';
@@ -3509,6 +3524,7 @@
     const orderVal = document.getElementById('m-order').value;
     const order = orderVal === '' ? (mons.length ? Math.max(...mons.map(m => m.order || 0)) + 1 : 1) : Number(orderVal);
     const statBudget = Number(document.getElementById('m-budget').value) || 0;
+    const range = document.getElementById('m-range').value;
     const notes = document.getElementById('m-notes').value.trim();
     const type1 = document.getElementById('m-type1').value;
     const type2 = document.getElementById('m-type2').value;
@@ -3523,7 +3539,7 @@
 
     const monData = {
       name, icon: pendingIconData || null, stats,
-      order, statBudget, notes, type1, type2, talentIds,
+      order, statBudget, range, notes, type1, type2, talentIds,
       preAscensionId, ascensions
     };
 
@@ -3735,6 +3751,7 @@
               const p = (r.skill.power === '' || r.skill.power === null || r.skill.power === undefined) ? '—' : r.skill.power;
               return `Pwr ${p} · `;
             })();
+            const rangeTag = r.skill.range ? `<span class="cat-badge">${escapeHtml(r.skill.range)}</span>` : '';
             const stoneTag = r.skill.stoneLearnable ? '<span class="cat-badge" style="color:var(--accent); border-color:var(--accent);">Stone-learnable</span>' : '';
             const metaHtml = isViewerMode
               ? `<span class="mon-skill-expand-meta">${levelVal !== '' ? `Lv. ${levelVal}` : '—'}</span>`
@@ -3747,6 +3764,7 @@
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span class="mon-skill-name-link" data-skill-id="${r.skill.id}" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; font-weight:600; color:${typeColorVar(r.skill.type)};">${escapeHtml(r.skill.name)}</span>
                   <span class="cat-badge">${escapeHtml(r.skill.category)}</span>
+                  ${rangeTag}
                   ${stoneTag}
                   <span style="color:var(--text-dim); font-size:0.72rem;">${powerText}Acc ${accText}</span>
                 </div>
@@ -3788,7 +3806,7 @@
           <h3>${escapeHtml(mon.name)}</h3>
           <span class="mon-expand-hint">${isExpanded ? '▲ Hide' : `▼ Skills (${skillCount})`}</span>
         </div>
-        <div class="mon-types">${typeBadges}</div>
+        <div class="mon-types">${typeBadges}${mon.range ? `<span class="cat-badge" title="Range">${escapeHtml(mon.range)}</span>` : ''}</div>
         <div style="display:flex; gap:14px; align-items:flex-start;">
           <div style="flex-shrink:0;">${hexSVG(mon.stats || {})}</div>
           <div class="mon-notes-box">${mon.notes ? escapeHtml(mon.notes) : '<span style="color:var(--text-dim);">No notes</span>'}</div>
@@ -3900,6 +3918,7 @@
       if(s.power !== '' && s.power !== undefined) statBits.push(`Power ${s.power}`);
       if(s.accuracy !== '' && s.accuracy !== undefined) statBits.push(`Accuracy ${s.accuracy}%`);
       if(statBits.length) lines.push(`  ${statBits.join(', ')}`);
+      if(s.range) lines.push(`  Range: ${s.range}`);
       if(s.stoneLearnable) lines.push(`  Learnable by Skill Stone`);
       if(s.tags && s.tags.length) lines.push(`  Tags: ${s.tags.join(', ')}`);
       if(s.desc) lines.push(`  Effect: ${s.desc}`);
@@ -3978,6 +3997,7 @@
       }).filter(Boolean);
       lines.push(`  Ascensions: ${ascendLines.length ? ascendLines.join('; ') : 'None'}`);
 
+      if(m.range) lines.push(`  Range: ${m.range}`);
       if(m.notes) lines.push(`  Notes: ${m.notes}`);
       lines.push('');
     });
@@ -4085,6 +4105,7 @@
       let power = '';
       let accuracy = '';
       let stoneLearnable = false;
+      let range = '';
       let tags = [];
       let inEffect = false;
       const effectLines = [];
@@ -4103,10 +4124,12 @@
         const eff = line.match(/^Effect:\s*(.*)$/);
         const stone = /^Learnable by Skill Stone$/i.test(line);
         const tagsLine = line.match(/^Tags:\s*(.*)$/i);
+        const rangeLine = line.match(/^Range:\s*(Near|Med|Far)\s*$/i);
         if(both){ power = Number(both[1]); accuracy = Number(both[2]); }
         else if(pOnly){ power = Number(pOnly[1]); }
         else if(aOnly){ accuracy = Number(aOnly[1]); }
         else if(stone){ stoneLearnable = true; }
+        else if(rangeLine){ range = rangeLine[1][0].toUpperCase() + rangeLine[1].slice(1).toLowerCase(); }
         else if(tagsLine){ tags = tagsLine[1].split(',').map(s => s.trim()).filter(Boolean); }
         else if(eff){
           inEffect = true;
@@ -4114,7 +4137,7 @@
         }
       }
       const desc = effectLines.join('\n').trim();
-      out.push({ name, type, category, tier, power, accuracy, stoneLearnable, tags, desc });
+      out.push({ name, type, category, tier, power, accuracy, stoneLearnable, range, tags, desc });
     });
     return out;
   }
@@ -4177,6 +4200,7 @@
       let preAscensionName = '';
       let ascensionEntries = [];
       let notes = '';
+      let range = '';
 
       bLines.slice(1).forEach(line => {
         const sm = line.match(/^Stats\s*—\s*HP\s+(\d+),\s*P-ATK\s+(\d+),\s*M-ATK\s+(\d+),\s*P-DEF\s+(\d+),\s*M-DEF\s+(\d+),\s*AGI\s+(\d+)/);
@@ -4185,6 +4209,8 @@
         const pm = line.match(/^Pre-Ascension:\s*(.*)$/);
         const am = line.match(/^Ascensions:\s*(.*)$/);
         const nm = line.match(/^Notes:\s*(.*)$/);
+        const rg = line.match(/^Range:\s*(Near|Med|Far)\s*$/i);
+        if(rg){ range = rg[1][0].toUpperCase() + rg[1].slice(1).toLowerCase(); }
         if(sm){
           stats = { hp:Number(sm[1]), patk:Number(sm[2]), matk:Number(sm[3]), pdef:Number(sm[4]), mdef:Number(sm[5]), agi:Number(sm[6]) };
         } else if(tm){
@@ -4218,7 +4244,7 @@
         }
       });
 
-      out.push({ order, name, type1, type2, stats, talentNames, skillEntries, preAscensionName, ascensionEntries, notes });
+      out.push({ order, name, type1, type2, stats, talentNames, skillEntries, preAscensionName, ascensionEntries, notes, range });
     });
     return out;
   }
@@ -4324,6 +4350,7 @@
         type2: pm.type2,
         order: pm.order,
         notes: pm.notes,
+        range: pm.range,
         skillLearns,
         talentIds
       };
