@@ -1087,7 +1087,7 @@
         </div>
         <div class="field">
           <label for="f-range">Range</label>
-          <select id="f-range"><option value="">—</option><option value="Near">Near</option><option value="Med">Med</option><option value="Far">Far</option></select>
+          <select id="f-range"><option value="">—</option><option value="Near">Near</option><option value="Med">Med</option><option value="Far">Far</option><option value="Unique">Unique</option></select>
         </div>
         <div class="field">
           <label for="f-stone">Skill Stone</label>
@@ -1233,7 +1233,7 @@
         </div>
         <div class="field">
           <label for="m-range">Range</label>
-          <select id="m-range"><option value="">—</option><option value="Near">Near</option><option value="Med">Med</option><option value="Far">Far</option></select>
+          <select id="m-range"><option value="">—</option><option value="Near">Near</option><option value="Med">Med</option><option value="Far">Far</option><option value="Random">Random</option></select>
         </div>
         <div class="field">
           <label for="m-budget">Stat total budget</label>
@@ -4124,7 +4124,7 @@
         const eff = line.match(/^Effect:\s*(.*)$/);
         const stone = /^Learnable by Skill Stone$/i.test(line);
         const tagsLine = line.match(/^Tags:\s*(.*)$/i);
-        const rangeLine = line.match(/^Range:\s*(Near|Med|Far)\s*$/i);
+        const rangeLine = line.match(/^Range:\s*(Near|Med|Far|Unique)\s*$/i);
         if(both){ power = Number(both[1]); accuracy = Number(both[2]); }
         else if(pOnly){ power = Number(pOnly[1]); }
         else if(aOnly){ accuracy = Number(aOnly[1]); }
@@ -4209,7 +4209,7 @@
         const pm = line.match(/^Pre-Ascension:\s*(.*)$/);
         const am = line.match(/^Ascensions:\s*(.*)$/);
         const nm = line.match(/^Notes:\s*(.*)$/);
-        const rg = line.match(/^Range:\s*(Near|Med|Far)\s*$/i);
+        const rg = line.match(/^Range:\s*(Near|Med|Far|Random)\s*$/i);
         if(rg){ range = rg[1][0].toUpperCase() + rg[1].slice(1).toLowerCase(); }
         if(sm){
           stats = { hp:Number(sm[1]), patk:Number(sm[2]), matk:Number(sm[3]), pdef:Number(sm[4]), mdef:Number(sm[5]), agi:Number(sm[6]) };
